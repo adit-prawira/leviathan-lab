@@ -1,5 +1,6 @@
 use bevy::window::WindowResolution;
 use bevy::{ prelude::*};
+use leviathan_lab::spawner::Spawner;
 use leviathan_lab::{camera, screen};
 
 fn main() {
@@ -21,7 +22,7 @@ fn main() {
         .add_systems(Startup, (
             camera::Camera::spawn, 
             screen::Screen::spawn_lights, 
-            screen::Screen::spawn_object
+            Spawner::spawn_monster
         ))
         .run();
 }
