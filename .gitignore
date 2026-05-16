@@ -1,0 +1,20 @@
+/target
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Editor backups
+*~
+
+# Leviathan Lab saves (user creations)
+*.leviathan
+
+# Project instructions
+AGENTS.md
