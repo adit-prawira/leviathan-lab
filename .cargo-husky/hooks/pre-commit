@@ -1,0 +1,18 @@
+#!/bin/sh
+# Run cargo fmt on changed Rust files. Auto-fix if check fails, then re-stage.
+
+changed=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.rs$')
+
+if [ -z "$changed" ]; then
+  exit 0
+fi
+
+echo "Running cargo fmt..."
+cargo fmt --all
+
+# Re-stage the files that were originally staged
+for file in $changed; do
+  git add "$file"
+done
+
+echo "Format done."
