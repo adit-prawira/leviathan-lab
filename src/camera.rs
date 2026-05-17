@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
+use bevy::prelude::*;
 
 pub struct Camera;
 
@@ -13,8 +13,8 @@ const ZOOM_SENSITIVITY: f32 = 0.5;
 pub struct OrbitCamera {
     pub yaw: f32,
     pub pitch: f32,
-    pub distance: f32, 
-    pub target: Vec3 
+    pub distance: f32,
+    pub target: Vec3,
 }
 
 impl Default for OrbitCamera {
@@ -31,7 +31,7 @@ impl Default for OrbitCamera {
 impl Camera {
     pub fn spawn(mut commands: Commands) {
         let orbit = OrbitCamera::default();
-        let transform  = orbit_transform(&orbit);
+        let transform = orbit_transform(&orbit);
         commands.insert_resource(orbit);
         commands.spawn((
             Camera3d::default(),
@@ -40,22 +40,22 @@ impl Camera {
                 falloff: FogFalloff::Exponential { density: 0.25 },
                 ..default()
             },
-            transform 
+            transform,
         ));
     }
     pub fn orbit(
         mut orbit: ResMut<OrbitCamera>,
         mut query: Query<&mut Transform, With<Camera3d>>,
-        mut motion: MessageReader<MouseMotion>, 
+        mut motion: MessageReader<MouseMotion>,
         mut scroll: MessageReader<MouseWheel>,
-        buttons: Res<ButtonInput<MouseButton>>
+        buttons: Res<ButtonInput<MouseButton>>,
     ) {
         let mut delta: Vec2 = Vec2::ZERO;
         for event in motion.read() {
             delta += event.delta;
         }
 
-        // Spin 
+        // Spin
         if buttons.pressed(MouseButton::Right) {
             orbit.yaw -= delta.x * ORBIT_SENSITIVITY;
             orbit.pitch -= delta.y * ORBIT_SENSITIVITY;
@@ -73,7 +73,7 @@ impl Camera {
 
         // Zoom
         for event in scroll.read() {
-            orbit.distance -= event.y * ZOOM_SENSITIVITY; 
+            orbit.distance -= event.y * ZOOM_SENSITIVITY;
             orbit.distance = orbit.distance.clamp(MIN_DISTANCE, MAX_DISTANCE);
         }
 
@@ -84,9 +84,9 @@ impl Camera {
 }
 
 fn orbit_transform(orbit: &OrbitCamera) -> Transform {
-    let x:f32 = orbit.distance * orbit.pitch.cos() * orbit.yaw.sin(); 
-    let y:f32 = orbit.distance * orbit.pitch.sin();
-    let z:f32 = orbit.distance * orbit.pitch.cos() * orbit.yaw.cos();
-    let eye:Vec3 = orbit.target + Vec3::new(x, y, z);
+    let x: f32 = orbit.distance * orbit.pitch.cos() * orbit.yaw.sin();
+    let y: f32 = orbit.distance * orbit.pitch.sin();
+    let z: f32 = orbit.distance * orbit.pitch.cos() * orbit.yaw.cos();
+    let eye: Vec3 = orbit.target + Vec3::new(x, y, z);
     Transform::from_translation(eye).looking_at(orbit.target, Vec3::Y)
 }

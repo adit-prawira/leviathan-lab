@@ -2,8 +2,8 @@ use bevy::prelude::*;
 
 #[derive(Clone, Debug, Component)]
 pub enum PartType {
-    Sphere {radius: f32},
-    Capsule {radius: f32, half_length: f32}
+    Sphere { radius: f32 },
+    Capsule { radius: f32, half_length: f32 },
 }
 
 #[derive(Clone, Debug, Component)]
@@ -16,7 +16,7 @@ pub struct BodyPart {
     pub translation: [f32; 3],
     pub rotation: [f32; 4],
     pub scale: [f32; 3],
-    pub material_id: u32
+    pub material_id: u32,
 }
 
 impl BodyPart {
