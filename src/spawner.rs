@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use crate::model::body_hierarchy::{BodyHierarchy};
 use crate::model::body_part::{PartType};
 use crate::model::monster::Monster;
+use crate::selector::{OriginalMaterial, Selector};
 use std::collections::HashMap;
 
 pub struct Spawner;
@@ -15,7 +16,10 @@ impl Spawner {
         let monster = Monster::default_hatchling();
         let bevy_materials: Vec<Handle<StandardMaterial>> = monster.materials.iter()
             .map(|material| materials.add(StandardMaterial{
-                base_color: Color::srgba(material.base_color[0], material.base_color[1], material.base_color[2], material.base_color[3]),
+                base_color: Color::srgba(
+                    material.base_color[0], material.base_color[1], 
+                    material.base_color[2], material.base_color[3]
+                ),
                 perceptual_roughness: material.roughness,
                 metallic: material.metallic,
                 ..default()
@@ -30,14 +34,19 @@ impl Spawner {
                     half_length: *half_length
                 }.mesh().build()
             };
+
+            let material_handler = bevy_materials[part.material_id as usize].clone();
             let entity = commands.spawn((
-                    Mesh3d(meshes.add(mesh)),
-                    MeshMaterial3d(bevy_materials[part.material_id as usize].clone()),
-                    Transform::from_translation(Vec3::from_array(part.translation))
-                      .with_rotation(Quat::from_array(part.rotation))
-                      .with_scale(Vec3::from_array(part.scale)),
-                    part.clone()
-            )).id();
+                Mesh3d(meshes.add(mesh)),
+                MeshMaterial3d(material_handler.clone()),
+                Transform::from_translation(Vec3::from_array(part.translation))
+                  .with_rotation(Quat::from_array(part.rotation))
+                  .with_scale(Vec3::from_array(part.scale)),
+                part.clone(),
+                OriginalMaterial(material_handler)
+            ))
+            .observe(Selector::on_press) // detect on pointer clicked on entity
+            .id();
             entity_map.insert(part.id, entity);
         }
 
