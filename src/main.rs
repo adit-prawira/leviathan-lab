@@ -1,5 +1,6 @@
 use bevy::window::WindowResolution;
 use bevy::{ prelude::*};
+use leviathan_lab::gizmos::{GizmosManager, GizmosMode};
 use leviathan_lab::spawner::Spawner;
 use leviathan_lab::{camera, screen, selector};
 
@@ -29,9 +30,13 @@ fn main() {
             screen::Screen::spawn_lights, 
             Spawner::spawn_monster
         ))
+        .insert_resource(GizmosMode::default())
         .add_systems(Update, (
             camera::Camera::orbit,
-            selector::Selector::deselect_on_click_away
+            selector::Selector::deselect_on_click_away,
+            GizmosManager::draw, 
+            GizmosManager::sync_handles, 
+            GizmosManager::mode_keys
         ))
         .run();
 }

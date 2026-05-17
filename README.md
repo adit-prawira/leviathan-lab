@@ -16,10 +16,14 @@ cargo run
 
 | Input | Action |
 |-------|--------|
-| Left drag | Orbit camera |
+| Right drag | Orbit camera |
 | Scroll | Zoom in / out |
 | Middle drag | Pan |
 | Left click | Select body part |
+| Left drag (on handle) | Move / scale selected part |
+| T | Translate mode |
+| R | Rotate mode |
+| S | Scale mode |
 | Escape | Deselect |
 
 ## Tech Stack

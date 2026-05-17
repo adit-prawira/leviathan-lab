@@ -17,10 +17,10 @@ impl Monster {
     }
 
     pub fn default_hatchling() -> Self {
-        let mut monster = Self::new();
-        let skin_material = MaterialData {base_color: [0.15, 0.45, 0.3, 1.0], roughness: 0.6, metallic: 0.05};
-        let belly_material = MaterialData {base_color: [0.7, 0.75, 0.7, 1.0], roughness: 0.7, metallic: 0.0};
-        let eye_material = MaterialData {base_color: [0.0, 0.0, 0.0, 1.0], roughness: 0.1, metallic: 0.0};
+        let mut monster: Monster = Self::new();
+        let skin_material: MaterialData = MaterialData {base_color: [0.15, 0.45, 0.3, 1.0], roughness: 0.6, metallic: 0.05};
+        let belly_material: MaterialData = MaterialData {base_color: [0.7, 0.75, 0.7, 1.0], roughness: 0.7, metallic: 0.0};
+        let eye_material:MaterialData = MaterialData {base_color: [0.0, 0.0, 0.0, 1.0], roughness: 0.1, metallic: 0.0};
 
         monster.materials.extend([skin_material, belly_material, eye_material]);
         monster.parts.extend([
