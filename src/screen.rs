@@ -18,8 +18,8 @@ impl Screen {
             Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -FRAC_PI_4, FRAC_PI_4, 0.0))
         ));
 
-        let floor = meshes.add(Plane3d::default().mesh().size(10.0, 10.0).build());
-        let floor_material = materials.add(StandardMaterial{
+        let floor:Handle<Mesh> = meshes.add(Plane3d::default().mesh().size(10.0, 10.0).build());
+        let floor_material: Handle<StandardMaterial> = materials.add(StandardMaterial{
             base_color: Color::srgb(0.03, 0.06, 0.1),
             perceptual_roughness: 0.9,
             ..default()

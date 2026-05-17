@@ -50,13 +50,13 @@ impl Camera {
         mut scroll: MessageReader<MouseWheel>,
         buttons: Res<ButtonInput<MouseButton>>
     ) {
-        let mut delta = Vec2::ZERO;
+        let mut delta: Vec2 = Vec2::ZERO;
         for event in motion.read() {
             delta += event.delta;
         }
 
         // Spin 
-        if buttons.pressed(MouseButton::Left) {
+        if buttons.pressed(MouseButton::Right) {
             orbit.yaw -= delta.x * ORBIT_SENSITIVITY;
             orbit.pitch -= delta.y * ORBIT_SENSITIVITY;
             orbit.pitch = orbit.pitch.clamp(-1.5, 1.5);
@@ -65,8 +65,8 @@ impl Camera {
         // Drag
         let distance = orbit.distance;
         if buttons.pressed(MouseButton::Middle) {
-            let right = Vec3::new(orbit.yaw.cos(), 0.0, -orbit.yaw.sin());
-            let up = Vec3::Y;
+            let right: Vec3 = Vec3::new(orbit.yaw.cos(), 0.0, -orbit.yaw.sin());
+            let up: Vec3 = Vec3::Y;
             orbit.target -= right * delta.x * PAN_SENSITIVITY * distance;
             orbit.target += up * delta.y * PAN_SENSITIVITY * distance;
         }
@@ -84,9 +84,9 @@ impl Camera {
 }
 
 fn orbit_transform(orbit: &OrbitCamera) -> Transform {
-    let x = orbit.distance * orbit.pitch.cos() * orbit.yaw.sin(); 
-    let y = orbit.distance * orbit.pitch.sin();
-    let z = orbit.distance * orbit.pitch.cos() * orbit.yaw.cos();
-    let eye = orbit.target + Vec3::new(x, y, z);
+    let x:f32 = orbit.distance * orbit.pitch.cos() * orbit.yaw.sin(); 
+    let y:f32 = orbit.distance * orbit.pitch.sin();
+    let z:f32 = orbit.distance * orbit.pitch.cos() * orbit.yaw.cos();
+    let eye:Vec3 = orbit.target + Vec3::new(x, y, z);
     Transform::from_translation(eye).looking_at(orbit.target, Vec3::Y)
 }

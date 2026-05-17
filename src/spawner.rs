@@ -13,7 +13,7 @@ impl Spawner {
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<StandardMaterial>>
     ) {
-        let monster = Monster::default_hatchling();
+        let monster: Monster = Monster::default_hatchling();
         let bevy_materials: Vec<Handle<StandardMaterial>> = monster.materials.iter()
             .map(|material| materials.add(StandardMaterial{
                 base_color: Color::srgba(
@@ -35,8 +35,8 @@ impl Spawner {
                 }.mesh().build()
             };
 
-            let material_handler = bevy_materials[part.material_id as usize].clone();
-            let entity = commands.spawn((
+            let material_handler:Handle<StandardMaterial> = bevy_materials[part.material_id as usize].clone();
+            let entity: Entity = commands.spawn((
                 Mesh3d(meshes.add(mesh)),
                 MeshMaterial3d(material_handler.clone()),
                 Transform::from_translation(Vec3::from_array(part.translation))
@@ -50,7 +50,7 @@ impl Spawner {
             entity_map.insert(part.id, entity);
         }
 
-        let mut hierarchy  = BodyHierarchy::default();
+        let mut hierarchy: BodyHierarchy = BodyHierarchy::default();
         for (id, entity) in &entity_map {
             hierarchy.entities.insert(*id, *entity);
         }

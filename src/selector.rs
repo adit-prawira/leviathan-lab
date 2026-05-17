@@ -27,13 +27,18 @@ impl Selector {
         mut selection: ResMut<Selection>,
         pointers: Query<&PointerInteraction>,
         body_parts: Query<(), With<crate::model::body_part::BodyPart>>,
+        gizmos_handles: Query<(), With<crate::gizmos::GizmosHandle>>,
         buttons: Res<ButtonInput<MouseButton>> 
     ){
         if !buttons.just_pressed(MouseButton::Left) {return;}
-
-        let hit_any_body_parts = pointers.iter()
+        
+        // if pointer clicking body or gizmos handle entity
+        let hit_any_body_parts:bool = pointers.iter()
             .filter_map(|pointer| pointer.get_nearest_hit())
-            .any(|(entity, _)| body_parts.contains(*entity));
+            .any(|(entity, _)| 
+                body_parts.contains(*entity) 
+                || gizmos_handles.contains(*entity)
+            );
 
         if !hit_any_body_parts {
             selection.entity = None;
