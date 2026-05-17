@@ -37,7 +37,7 @@ impl Camera {
             Camera3d::default(),
             DistanceFog {
                 color: Color::srgba(0.02, 0.05, 0.1, 1.0),
-                falloff: FogFalloff::Exponential { density: 0.35 },
+                falloff: FogFalloff::Exponential { density: 0.25 },
                 ..default()
             },
             transform 

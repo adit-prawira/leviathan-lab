@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use crate::model::body_part::PartType;
+use crate::model::body_hierarchy::{BodyHierarchy};
+use crate::model::body_part::{PartType};
 use crate::model::monster::Monster;
 use std::collections::HashMap;
 
@@ -34,10 +35,17 @@ impl Spawner {
                     MeshMaterial3d(bevy_materials[part.material_id as usize].clone()),
                     Transform::from_translation(Vec3::from_array(part.translation))
                       .with_rotation(Quat::from_array(part.rotation))
-                      .with_scale(Vec3::from_array(part.scale))
+                      .with_scale(Vec3::from_array(part.scale)),
+                    part.clone()
             )).id();
             entity_map.insert(part.id, entity);
         }
+
+        let mut hierarchy  = BodyHierarchy::default();
+        for (id, entity) in &entity_map {
+            hierarchy.entities.insert(*id, *entity);
+        }
+        commands.insert_resource(hierarchy);
 
         // Sync monster part children-parent relationship to Bevy's ECS hierarchy
         for part in &monster.parts {
