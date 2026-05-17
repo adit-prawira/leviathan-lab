@@ -1,10 +1,12 @@
-#[derive(Clone, Debug)]
+use bevy::prelude::*;
+
+#[derive(Clone, Debug, Component)]
 pub enum PartType {
     Sphere {radius: f32},
     Capsule {radius: f32, half_length: f32}
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 pub struct BodyPart {
     pub id: u32,
     pub name: String,
