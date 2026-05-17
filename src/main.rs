@@ -24,5 +24,8 @@ fn main() {
             screen::Screen::spawn_lights, 
             Spawner::spawn_monster
         ))
+        .add_systems(Update, (
+            camera::Camera::orbit,
+        ))
         .run();
 }
