@@ -35,6 +35,11 @@ impl Camera {
         commands.insert_resource(orbit);
         commands.spawn((
             Camera3d::default(),
+            DistanceFog {
+                color: Color::srgba(0.02, 0.05, 0.1, 1.0),
+                falloff: FogFalloff::Exponential { density: 0.35 },
+                ..default()
+            },
             transform 
         ));
     }
