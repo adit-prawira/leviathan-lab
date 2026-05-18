@@ -38,4 +38,16 @@ impl Selector {
             selection.entity = None;
         }
     }
+
+    pub fn input_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut selection: ResMut<Selection>) {
+        // deselect entity (exit specific mode)
+        if keys.just_pressed(KeyCode::Escape) {
+            selection.entity = None;
+        }
+
+        // Placeholder, the itention is to delete an entity
+        if keys.just_pressed(KeyCode::Delete) || keys.just_pressed(KeyCode::Backspace) {
+            selection.entity = None
+        }
+    }
 }

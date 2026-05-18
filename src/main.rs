@@ -44,6 +44,7 @@ fn main() {
             (
                 camera::Camera::orbit,
                 selector::Selector::deselect_on_click_away,
+                selector::Selector::input_shortcuts,
                 GizmosManager::draw,
                 GizmosManager::sync_handles,
                 GizmosManager::mode_keys,
