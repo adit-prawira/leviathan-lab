@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 use leviathan_lab::gizmos::{GizmosManager, GizmosMode};
+use leviathan_lab::properties::PropertiesPanel;
 use leviathan_lab::spawner::Spawner;
 use leviathan_lab::{camera, screen, selector};
 
@@ -19,6 +21,7 @@ fn main() {
                     ..default()
                 }),
             MeshPickingPlugin,
+            EguiPlugin::default(),
         ))
         .insert_resource(GlobalAmbientLight {
             color: Color::srgb(0.05, 0.1, 0.02),
@@ -46,5 +49,6 @@ fn main() {
                 GizmosManager::mode_keys,
             ),
         )
+        .add_systems(EguiPrimaryContextPass, PropertiesPanel::show)
         .run();
 }

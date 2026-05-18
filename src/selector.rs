@@ -12,15 +12,9 @@ pub struct OriginalMaterial(pub Handle<StandardMaterial>);
 pub struct Selector;
 
 impl Selector {
-    pub fn on_press(
-        event: On<Pointer<Press>>,
-        mut selection: ResMut<Selection>,
-        body_parts: Query<&crate::model::body_part::BodyPart>,
-    ) {
+    pub fn on_press(mut event: On<Pointer<Press>>, mut selection: ResMut<Selection>) {
+        event.propagate(false);
         selection.entity = Some(event.entity);
-        if let Ok(body_part) = body_parts.get(event.entity) {
-            println!("Body Part Selected => {}", body_part.name)
-        }
     }
 
     pub fn deselect_on_click_away(
