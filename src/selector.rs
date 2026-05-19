@@ -1,5 +1,6 @@
 use bevy::picking::pointer::PointerInteraction;
 use bevy::prelude::*;
+use bevy_egui::EguiContexts;
 
 #[derive(Resource, Default)]
 pub struct Selection {
@@ -23,8 +24,17 @@ impl Selector {
         body_parts: Query<(), With<crate::model::body_part::BodyPart>>,
         gizmos_handles: Query<(), With<crate::gizmos::GizmosHandle>>,
         buttons: Res<ButtonInput<MouseButton>>,
+        mut egui_contexts: EguiContexts,
     ) {
         if !buttons.just_pressed(MouseButton::Left) {
+            return;
+        }
+
+        if egui_contexts
+            .ctx_mut()
+            .expect("egui context")
+            .wants_pointer_input()
+        {
             return;
         }
 

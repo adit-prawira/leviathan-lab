@@ -16,24 +16,6 @@ impl Spawner {
         mut materials: ResMut<Assets<StandardMaterial>>,
     ) {
         let monster: Monster = Monster::default_hatchling();
-        let bevy_materials: Vec<Handle<StandardMaterial>> = monster
-            .materials
-            .iter()
-            .map(|material| {
-                materials.add(StandardMaterial {
-                    base_color: Color::srgba(
-                        material.base_color[0],
-                        material.base_color[1],
-                        material.base_color[2],
-                        material.base_color[3],
-                    ),
-                    perceptual_roughness: material.roughness,
-                    metallic: material.metallic,
-                    ..default()
-                })
-            })
-            .collect();
-
         let mut entity_map: HashMap<u32, Entity> = HashMap::new();
         for part in &monster.parts {
             let mesh: Mesh = match &part.part_type {
@@ -49,18 +31,28 @@ impl Spawner {
                 .build(),
             };
 
-            let material_handler: Handle<StandardMaterial> =
-                bevy_materials[part.material_id as usize].clone();
             let monster_material: &MaterialData = &monster.materials[part.material_id as usize];
+            let material_handle = materials.add(StandardMaterial {
+                base_color: Color::srgba(
+                    monster_material.base_color[0],
+                    monster_material.base_color[1],
+                    monster_material.base_color[2],
+                    monster_material.base_color[3],
+                ),
+                perceptual_roughness: monster_material.roughness,
+                metallic: monster_material.metallic,
+                ..default()
+            });
+
             let entity: Entity = commands
                 .spawn((
                     Mesh3d(meshes.add(mesh)),
-                    MeshMaterial3d(material_handler.clone()),
+                    MeshMaterial3d(material_handle.clone()),
                     Transform::from_translation(Vec3::from_array(part.translation))
                         .with_rotation(Quat::from_array(part.rotation))
                         .with_scale(Vec3::from_array(part.scale)),
                     part.clone(),
-                    OriginalMaterial(material_handler),
+                    OriginalMaterial(material_handle),
                     BodyMaterial {
                         base_color: Color::srgba(
                             monster_material.base_color[0],

@@ -1,3 +1,4 @@
+use crate::body_material::BodyMaterial;
 use crate::model::body_part::BodyPart;
 use crate::selector::Selection;
 use bevy::prelude::*;
@@ -19,6 +20,7 @@ impl PropertiesPanel {
         body_parts: Query<&BodyPart>,
         mut contexts: EguiContexts,
         mut transforms: Query<&mut Transform>,
+        mut body_materials: Query<&mut BodyMaterial>,
     ) {
         // if enity selected, then proceed to render panel, otherwise return early
         let Some(entity) = selection.entity else {
@@ -37,6 +39,9 @@ impl PropertiesPanel {
             return;
         };
 
+        let Ok(mut body_material) = body_materials.get_mut(entity) else {
+            return;
+        };
         // render panel on the right-hand side of the screen
         egui::SidePanel::right("properties").min_width(400.0).show(
             contexts.ctx_mut().expect("egui context"),
@@ -123,6 +128,31 @@ impl PropertiesPanel {
                     ui.end_row();
                 });
                 ui.separator();
+
+                ui.heading("Color");
+                ui.add_space(8.0);
+                let linear = body_material.base_color.to_linear();
+                let mut egui_color = egui::Color32::from_rgba_premultiplied(
+                    (linear.red * 255.0) as u8,
+                    (linear.green * 255.0) as u8,
+                    (linear.blue * 255.0) as u8,
+                    (linear.alpha * 255.0) as u8,
+                );
+                let color_picker = egui::color_picker::color_edit_button_srgba(
+                    ui,
+                    &mut egui_color,
+                    egui::color_picker::Alpha::Opaque,
+                );
+
+                if color_picker.changed() {
+                    let (r, g, b, a) = egui_color.to_tuple();
+                    body_material.base_color = Color::srgba(
+                        r as f32 / 255.0,
+                        g as f32 / 255.0,
+                        b as f32 / 255.0,
+                        a as f32 / 255.0,
+                    );
+                }
             },
         );
     }
