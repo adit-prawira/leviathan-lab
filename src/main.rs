@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
+use leviathan_lab::body_material::BodyMaterial;
 use leviathan_lab::gizmos::{GizmosManager, GizmosMode};
 use leviathan_lab::properties::PropertiesPanel;
 use leviathan_lab::spawner::Spawner;
@@ -48,6 +49,7 @@ fn main() {
                 GizmosManager::draw,
                 GizmosManager::sync_handles,
                 GizmosManager::mode_keys,
+                BodyMaterial::sync,
             ),
         )
         .add_systems(EguiPrimaryContextPass, PropertiesPanel::show)
