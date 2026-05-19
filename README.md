@@ -25,6 +25,7 @@ cargo run
 | R | Rotate mode |
 | S | Scale mode |
 | Escape | Deselect |
+| Delete / Backspace | Remove selected part (placeholder) |
 
 ## Tech Stack
 
@@ -33,7 +34,7 @@ cargo run
 | Language | Rust |
 | Engine | Bevy 0.18 |
 | 3D Math | `glam` (via Bevy) |
-| UI | Bevy UI / `bevy_egui` (planned) |
+| UI | `bevy_egui` 0.39 |
 | Serialization | `serde` + JSON (planned) |
 
 ## Status
@@ -41,13 +42,11 @@ cargo run
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Skeleton in the Water | ✅ Done |
-| 2 | Grab a Part | 🚧 In progress |
-| 3 | Paint the Beast | 🔲 |
+| 2 | Grab a Part | ✅ Done |
+| 3 | Paint the Beast | 🚧 In progress |
 | 4 | Body Builder | 🔲 |
 | 5 | Spikes & Fins | 🔲 |
 | 6 | Make It Swim | 🔲 |
 | 7 | Deep Sea Polish | 🔲 |
 
-## License
 
-MIT
