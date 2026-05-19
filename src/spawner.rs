@@ -1,5 +1,7 @@
+use crate::body_material::BodyMaterial;
 use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_part::PartType;
+use crate::model::material::MaterialData;
 use crate::model::monster::Monster;
 use crate::selector::{OriginalMaterial, Selector};
 use bevy::prelude::*;
@@ -49,6 +51,7 @@ impl Spawner {
 
             let material_handler: Handle<StandardMaterial> =
                 bevy_materials[part.material_id as usize].clone();
+            let monster_material: &MaterialData = &monster.materials[part.material_id as usize];
             let entity: Entity = commands
                 .spawn((
                     Mesh3d(meshes.add(mesh)),
@@ -58,6 +61,16 @@ impl Spawner {
                         .with_scale(Vec3::from_array(part.scale)),
                     part.clone(),
                     OriginalMaterial(material_handler),
+                    BodyMaterial {
+                        base_color: Color::srgba(
+                            monster_material.base_color[0],
+                            monster_material.base_color[1],
+                            monster_material.base_color[2],
+                            monster_material.base_color[3],
+                        ),
+                        roughness: monster_material.roughness,
+                        metallic: monster_material.metallic,
+                    },
                 ))
                 .observe(Selector::on_press) // detect on pointer clicked on entity
                 .id();

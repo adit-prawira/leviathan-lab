@@ -1,3 +1,4 @@
+pub mod body_material;
 pub mod camera;
 pub mod gizmos;
 pub mod model;
