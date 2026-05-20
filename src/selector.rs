@@ -29,7 +29,6 @@ impl Selector {
         if !buttons.just_pressed(MouseButton::Left) {
             return;
         }
-
         if egui_contexts
             .ctx_mut()
             .expect("egui context")
@@ -50,14 +49,12 @@ impl Selector {
     }
 
     pub fn input_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut selection: ResMut<Selection>) {
-        // deselect entity (exit specific mode)
         if keys.just_pressed(KeyCode::Escape) {
             selection.entity = None;
         }
-
-        // Placeholder, the itention is to delete an entity
+        // Placeholder, the intention is to delete an entity
         if keys.just_pressed(KeyCode::Delete) || keys.just_pressed(KeyCode::Backspace) {
-            selection.entity = None
+            selection.entity = None;
         }
     }
 }

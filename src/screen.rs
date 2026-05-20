@@ -4,11 +4,7 @@ use bevy::prelude::*;
 pub struct Screen;
 
 impl Screen {
-    pub fn spawn_lights(
-        mut commands: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
-    ) {
+    pub fn spawn_lights(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
         commands.spawn((
             DirectionalLight {
                 illuminance: 15_000.0,
@@ -24,10 +20,6 @@ impl Screen {
             perceptual_roughness: 0.9,
             ..default()
         });
-        commands.spawn((
-            Mesh3d(floor),
-            MeshMaterial3d(floor_material),
-            Transform::from_xyz(0.0, -1.5, 0.0),
-        ));
+        commands.spawn((Mesh3d(floor), MeshMaterial3d(floor_material), Transform::from_xyz(0.0, -1.5, 0.0)));
     }
 }

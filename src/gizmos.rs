@@ -33,12 +33,9 @@ impl GizmosManager {
         transforms: Query<&GlobalTransform>,
         mut gizmos: Gizmos,
     ) {
-        // if selected entity exist continue process, otherwise skip
         let Some(entity) = selection.entity else {
             return;
         };
-
-        // if entity as valid global transform continue process, otherwise skip
         let Ok(global_transform) = transforms.get(entity) else {
             return;
         };
@@ -109,23 +106,18 @@ impl GizmosManager {
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<StandardMaterial>>,
     ) {
-        // if nothing changes skip process
         if !selection.is_changed() && !mode.is_changed() {
             return;
-        };
+        }
 
         // Despawn old handles
         for entity in &handles {
             commands.entity(entity).despawn();
         }
 
-        // if target entity exist continue process, otherwise skip process
         let Some(target_entity) = selection.entity else {
             return;
         };
-
-        // if target entity does not have valid global transform continue process
-        // otherwise skip process
         let Ok(global_transform) = transforms.get(target_entity) else {
             return;
         };
@@ -162,12 +154,9 @@ impl GizmosManager {
         orbit: Res<OrbitCamera>,
         mut transforms: Query<&mut Transform>,
     ) {
-        // has valid handle the continue process, otherwise skip process
         let Ok(handle) = handles.get(drag.entity) else {
             return;
         };
-
-        // has valid global transofrm continue process, otherwise skip process
         let Ok(mut transform) = transforms.get_mut(handle.target) else {
             return;
         };
@@ -184,13 +173,13 @@ impl GizmosManager {
 
     pub fn mode_keys(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {
         if keys.just_pressed(KeyCode::KeyT) {
-            *mode = GizmosMode::Translate
-        };
+            *mode = GizmosMode::Translate;
+        }
         if keys.just_pressed(KeyCode::KeyS) {
-            *mode = GizmosMode::Scale
-        };
+            *mode = GizmosMode::Scale;
+        }
         if keys.just_pressed(KeyCode::KeyR) {
-            *mode = GizmosMode::Rotate
-        };
+            *mode = GizmosMode::Rotate;
+        }
     }
 }

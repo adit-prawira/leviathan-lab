@@ -34,9 +34,7 @@ impl Monster {
             metallic: 0.0,
         };
 
-        monster
-            .materials
-            .extend([skin_material, belly_material, eye_material]);
+        monster.materials.extend([skin_material, belly_material, eye_material]);
         monster.parts.extend([
             monster.build_body(),
             monster.build_head(),
@@ -81,10 +79,7 @@ impl Monster {
         BodyPart {
             id: 2,
             name: "Tail".into(),
-            part_type: PartType::Capsule {
-                radius: 0.3,
-                half_length: 0.2,
-            },
+            part_type: PartType::Capsule { radius: 0.3, half_length: 0.2 },
             parent_id: Some(0),
             children: vec![],
             translation: [0.0, 0.0, 1.0],

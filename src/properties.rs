@@ -1,6 +1,7 @@
 use crate::body_material::BodyMaterial;
 use crate::model::body_part::BodyPart;
 use crate::selector::Selection;
+use crate::symmetry::SymmetryMode;
 use bevy::prelude::*;
 use bevy_egui::egui::Response;
 use bevy_egui::{EguiContexts, egui};
@@ -19,29 +20,23 @@ impl PropertiesPanel {
         selection: Res<Selection>,
         body_parts: Query<&BodyPart>,
         mut contexts: EguiContexts,
+        mut symmetry_mode: ResMut<SymmetryMode>,
         mut transforms: Query<&mut Transform>,
         mut body_materials: Query<&mut BodyMaterial>,
     ) {
-        // if enity selected, then proceed to render panel, otherwise return early
         let Some(entity) = selection.entity else {
             return;
         };
-
-        // if selected entity is valid body part, then proceed to render panel, otherwise return
-        // early
         let Ok(body_part) = body_parts.get(entity) else {
             return;
         };
-
-        // if selected entity has valid transform, then proceed to render panel,
-        // otherwise return early
         let Ok(mut transform) = transforms.get_mut(entity) else {
             return;
         };
-
         let Ok(mut body_material) = body_materials.get_mut(entity) else {
             return;
         };
+
         // render panel on the right-hand side of the screen
         egui::SidePanel::right("properties").min_width(400.0).show(
             contexts.ctx_mut().expect("egui context"),
@@ -81,7 +76,7 @@ impl PropertiesPanel {
                         );
                         if ui_rx_value.changed() {
                             changed = true;
-                        };
+                        }
 
                         ui.label("Ry:");
                         let ui_ry_value: Response = ui.add(
@@ -91,7 +86,7 @@ impl PropertiesPanel {
                         );
                         if ui_ry_value.changed() {
                             changed = true;
-                        };
+                        }
 
                         ui.label("Rz:");
                         let ui_rz_value: Response = ui.add(
@@ -101,7 +96,7 @@ impl PropertiesPanel {
                         );
                         if ui_rz_value.changed() {
                             changed = true;
-                        };
+                        }
 
                         if changed {
                             transform.rotation = Quat::from_euler(
@@ -156,7 +151,6 @@ impl PropertiesPanel {
                 ui.separator();
 
                 ui.heading("Texture");
-
                 egui::Grid::new("Texture")
                     .spacing([8.0, 8.0])
                     .show(ui, |ui| {
@@ -168,6 +162,15 @@ impl PropertiesPanel {
                         ui.add(egui::Slider::new(&mut body_material.metallic, 0.0..=1.0));
                         ui.end_row();
                     });
+
+                ui.heading("Mode");
+                egui::Grid::new("Mode").spacing([8.0, 8.0]).show(ui, |ui| {
+                    ui.strong("Symmetry Mode");
+                    ui.add(egui::Checkbox::new(
+                        &mut symmetry_mode.enabled,
+                        "Enable Symmetry Mode",
+                    ));
+                })
             },
         );
     }
