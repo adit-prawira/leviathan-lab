@@ -13,10 +13,7 @@ pub struct BodyMaterial {
  *      mesh
  * */
 impl BodyMaterial {
-    pub fn sync(
-        query: Query<(&BodyMaterial, &MeshMaterial3d<StandardMaterial>), Changed<BodyMaterial>>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
-    ) {
+    pub fn sync(query: Query<(&BodyMaterial, &MeshMaterial3d<StandardMaterial>), Changed<BodyMaterial>>, mut materials: ResMut<Assets<StandardMaterial>>) {
         for (body_material, material_handle) in query {
             if let Some(material) = materials.get_mut(material_handle) {
                 material.base_color = body_material.base_color;

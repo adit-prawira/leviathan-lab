@@ -6,3 +6,4 @@ pub mod properties;
 pub mod screen;
 pub mod selector;
 pub mod spawner;
+pub mod symmetry;

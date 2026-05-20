@@ -5,22 +5,20 @@ use leviathan_lab::body_material::BodyMaterial;
 use leviathan_lab::gizmos::{GizmosManager, GizmosMode};
 use leviathan_lab::properties::PropertiesPanel;
 use leviathan_lab::spawner::Spawner;
-use leviathan_lab::{camera, screen, selector};
+use leviathan_lab::symmetry::Symmetry;
+use leviathan_lab::{camera, screen, selector, symmetry};
 
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins
-                .build()
-                .disable::<GilrsPlugin>()
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Leviathan Lab".into(),
-                        resolution: WindowResolution::new(1280, 720),
-                        ..default()
-                    }),
+            DefaultPlugins.build().disable::<GilrsPlugin>().set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Leviathan Lab".into(),
+                    resolution: WindowResolution::new(1280, 720),
                     ..default()
                 }),
+                ..default()
+            }),
             MeshPickingPlugin,
             EguiPlugin::default(),
         ))
@@ -31,14 +29,9 @@ fn main() {
         })
         .insert_resource(ClearColor(Color::srgb(0.01, 0.02, 0.05)))
         .insert_resource(selector::Selection::default())
-        .add_systems(
-            Startup,
-            (
-                camera::Camera::spawn,
-                screen::Screen::spawn_lights,
-                Spawner::spawn_monster,
-            ),
-        )
+        .insert_resource(symmetry::SymmetryMode::default())
+        .insert_resource(symmetry::PendingSymmetricChanges::default())
+        .add_systems(Startup, (camera::Camera::spawn, screen::Screen::spawn_lights, Spawner::spawn_monster))
         .insert_resource(GizmosMode::default())
         .add_systems(
             Update,
@@ -50,6 +43,13 @@ fn main() {
                 GizmosManager::sync_handles,
                 GizmosManager::mode_keys,
                 BodyMaterial::sync,
+                (
+                    // changes must run collected before
+                    // changes can be applied
+                    Symmetry::collect_changes,
+                    Symmetry::apply,
+                )
+                    .chain(),
             ),
         )
         .add_systems(EguiPrimaryContextPass, PropertiesPanel::show)
