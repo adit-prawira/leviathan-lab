@@ -77,15 +77,9 @@ impl Spawner {
 
         // Sync monster part children-parent relationship to Bevy's ECS hierarchy
         for part in &monster.parts {
-            let Some(parent_id) = part.parent_id else {
-                continue;
-            };
-            let Some(&child_entity) = entity_map.get(&part.id) else {
-                continue;
-            };
-            let Some(&parent_entity) = entity_map.get(&parent_id) else {
-                continue;
-            };
+            let Some(parent_id) = part.parent_id else { continue; };
+            let Some(&child_entity) = entity_map.get(&part.id) else { continue; };
+            let Some(&parent_entity) = entity_map.get(&parent_id) else { continue; };
             commands.entity(parent_entity).add_child(child_entity);
         }
     }

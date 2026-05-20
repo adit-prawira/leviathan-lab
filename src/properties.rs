@@ -24,18 +24,10 @@ impl PropertiesPanel {
         mut transforms: Query<&mut Transform>,
         mut body_materials: Query<&mut BodyMaterial>,
     ) {
-        let Some(entity) = selection.entity else {
-            return;
-        };
-        let Ok(body_part) = body_parts.get(entity) else {
-            return;
-        };
-        let Ok(mut transform) = transforms.get_mut(entity) else {
-            return;
-        };
-        let Ok(mut body_material) = body_materials.get_mut(entity) else {
-            return;
-        };
+        let Some(entity) = selection.entity else { return; };
+        let Ok(body_part) = body_parts.get(entity) else { return; };
+        let Ok(mut transform) = transforms.get_mut(entity) else { return; };
+        let Ok(mut body_material) = body_materials.get_mut(entity) else { return; };
 
         // render panel on the right-hand side of the screen
         egui::SidePanel::right("properties").min_width(400.0).show(

@@ -45,16 +45,12 @@ impl Symmetry {
         all_body_materials: Query<(Entity, &GlobalTransform)>,
         mut body_materials: Query<&mut BodyMaterial>,
     ) {
-        if !mode.enabled {
-            return;
-        }
+        if !mode.enabled { return; }
 
         for (entity, body_material, current_entity_position) in
             &pending_symmetric_changes.material_snapshots
         {
-            if current_entity_position.x.abs() < MIRROR_THRESHOLD {
-                continue;
-            }
+            if current_entity_position.x.abs() < MIRROR_THRESHOLD { continue; }
 
             let mirrored_entity = all_body_materials
                 .iter()
@@ -69,12 +65,8 @@ impl Symmetry {
                 })
                 .map(|(e, _)| e);
 
-            let Some(mirrored_entity) = mirrored_entity else {
-                continue;
-            };
-            let Ok(mut mirrored_material) = body_materials.get_mut(mirrored_entity) else {
-                continue;
-            };
+            let Some(mirrored_entity) = mirrored_entity else { continue; };
+            let Ok(mut mirrored_material) = body_materials.get_mut(mirrored_entity) else { continue; };
             *mirrored_material = body_material.clone();
         }
     }

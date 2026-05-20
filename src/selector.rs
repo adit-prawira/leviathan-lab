@@ -26,16 +26,8 @@ impl Selector {
         buttons: Res<ButtonInput<MouseButton>>,
         mut egui_contexts: EguiContexts,
     ) {
-        if !buttons.just_pressed(MouseButton::Left) {
-            return;
-        }
-        if egui_contexts
-            .ctx_mut()
-            .expect("egui context")
-            .wants_pointer_input()
-        {
-            return;
-        }
+        if !buttons.just_pressed(MouseButton::Left) { return; }
+        if egui_contexts.ctx_mut().expect("egui context").wants_pointer_input() { return; }
 
         // if pointer clicking body or gizmos handle entity
         let hit_any_body_parts: bool = pointers
@@ -43,18 +35,12 @@ impl Selector {
             .filter_map(|pointer| pointer.get_nearest_hit())
             .any(|(entity, _)| body_parts.contains(*entity) || gizmos_handles.contains(*entity));
 
-        if !hit_any_body_parts {
-            selection.entity = None;
-        }
+        if !hit_any_body_parts { selection.entity = None; }
     }
 
     pub fn input_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut selection: ResMut<Selection>) {
-        if keys.just_pressed(KeyCode::Escape) {
-            selection.entity = None;
-        }
+        if keys.just_pressed(KeyCode::Escape) { selection.entity = None; }
         // Placeholder, the intention is to delete an entity
-        if keys.just_pressed(KeyCode::Delete) || keys.just_pressed(KeyCode::Backspace) {
-            selection.entity = None;
-        }
+        if keys.just_pressed(KeyCode::Delete) || keys.just_pressed(KeyCode::Backspace) { selection.entity = None; }
     }
 }

@@ -33,12 +33,8 @@ impl GizmosManager {
         transforms: Query<&GlobalTransform>,
         mut gizmos: Gizmos,
     ) {
-        let Some(entity) = selection.entity else {
-            return;
-        };
-        let Ok(global_transform) = transforms.get(entity) else {
-            return;
-        };
+        let Some(entity) = selection.entity else { return; };
+        let Ok(global_transform) = transforms.get(entity) else { return; };
 
         let position: Vec3 = global_transform.translation();
 
@@ -106,21 +102,15 @@ impl GizmosManager {
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<StandardMaterial>>,
     ) {
-        if !selection.is_changed() && !mode.is_changed() {
-            return;
-        }
+        if !selection.is_changed() && !mode.is_changed() { return; }
 
         // Despawn old handles
         for entity in &handles {
             commands.entity(entity).despawn();
         }
 
-        let Some(target_entity) = selection.entity else {
-            return;
-        };
-        let Ok(global_transform) = transforms.get(target_entity) else {
-            return;
-        };
+        let Some(target_entity) = selection.entity else { return; };
+        let Ok(global_transform) = transforms.get(target_entity) else { return; };
         let position: Vec3 = global_transform.translation();
         let axes: [(Vec3, Color); 3] = [
             (Vec3::X, Color::srgb(1.0, 0.2, 0.2)),
@@ -154,12 +144,8 @@ impl GizmosManager {
         orbit: Res<OrbitCamera>,
         mut transforms: Query<&mut Transform>,
     ) {
-        let Ok(handle) = handles.get(drag.entity) else {
-            return;
-        };
-        let Ok(mut transform) = transforms.get_mut(handle.target) else {
-            return;
-        };
+        let Ok(handle) = handles.get(drag.entity) else { return; };
+        let Ok(mut transform) = transforms.get_mut(handle.target) else { return; };
         let scale: f32 = orbit.distance * 0.01;
         let delta = drag.delta;
 
@@ -172,14 +158,8 @@ impl GizmosManager {
     }
 
     pub fn mode_keys(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {
-        if keys.just_pressed(KeyCode::KeyT) {
-            *mode = GizmosMode::Translate;
-        }
-        if keys.just_pressed(KeyCode::KeyS) {
-            *mode = GizmosMode::Scale;
-        }
-        if keys.just_pressed(KeyCode::KeyR) {
-            *mode = GizmosMode::Rotate;
-        }
+        if keys.just_pressed(KeyCode::KeyT) { *mode = GizmosMode::Translate; }
+        if keys.just_pressed(KeyCode::KeyS) { *mode = GizmosMode::Scale; }
+        if keys.just_pressed(KeyCode::KeyR) { *mode = GizmosMode::Rotate; }
     }
 }
