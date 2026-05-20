@@ -7,7 +7,7 @@ const MIN_DISTANCE: f32 = 1.0;
 const MAX_DISTANCE: f32 = 20.0;
 const ORBIT_SENSITIVITY: f32 = 0.005;
 const PAN_SENSITIVITY: f32 = 0.005;
-const ZOOM_SENSITIVITY: f32 = 0.5;
+const ZOOM_SENSITIVITY: f32 = 0.05;
 
 #[derive(Resource)]
 pub struct OrbitCamera {

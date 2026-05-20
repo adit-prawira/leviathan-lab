@@ -153,6 +153,21 @@ impl PropertiesPanel {
                         a as f32 / 255.0,
                     );
                 }
+                ui.separator();
+
+                ui.heading("Texture");
+
+                egui::Grid::new("Texture")
+                    .spacing([8.0, 8.0])
+                    .show(ui, |ui| {
+                        ui.strong("Roughness");
+                        ui.add(egui::Slider::new(&mut body_material.roughness, 0.0..=1.0));
+                        ui.end_row();
+
+                        ui.strong("Metallic");
+                        ui.add(egui::Slider::new(&mut body_material.metallic, 0.0..=1.0));
+                        ui.end_row();
+                    });
             },
         );
     }
