@@ -7,3 +7,4 @@ pub mod screen;
 pub mod selector;
 pub mod spawner;
 pub mod symmetry;
+pub mod edit_history;

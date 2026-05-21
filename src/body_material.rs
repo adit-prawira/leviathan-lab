@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, PartialEq)]
 pub struct BodyMaterial {
     pub base_color: Color,
     pub roughness: f32,

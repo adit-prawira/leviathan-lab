@@ -1,4 +1,5 @@
 use crate::body_material::BodyMaterial;
+use crate::edit_history::PreviousBodyMaterial;
 use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_part::PartType;
 use crate::model::material::MaterialData;
@@ -43,7 +44,18 @@ impl Spawner {
                 metallic: monster_material.metallic,
                 ..default()
             });
-
+            
+            let body_material = BodyMaterial {
+                base_color: Color::srgba(
+                    monster_material.base_color[0],
+                    monster_material.base_color[1],
+                    monster_material.base_color[2],
+                    monster_material.base_color[3],
+                ),
+                roughness: monster_material.roughness,
+                metallic: monster_material.metallic,
+            };
+            let previous_body_material = PreviousBodyMaterial(body_material.clone());
             let entity: Entity = commands
                 .spawn((
                     Mesh3d(meshes.add(mesh)),
@@ -53,16 +65,8 @@ impl Spawner {
                         .with_scale(Vec3::from_array(part.scale)),
                     part.clone(),
                     OriginalMaterial(material_handle),
-                    BodyMaterial {
-                        base_color: Color::srgba(
-                            monster_material.base_color[0],
-                            monster_material.base_color[1],
-                            monster_material.base_color[2],
-                            monster_material.base_color[3],
-                        ),
-                        roughness: monster_material.roughness,
-                        metallic: monster_material.metallic,
-                    },
+                    body_material,
+                    previous_body_material
                 ))
                 .observe(Selector::on_press) // detect on pointer clicked on entity
                 .id();

@@ -2,11 +2,12 @@ use bevy::prelude::*;
 use bevy::window::WindowResolution;
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 use leviathan_lab::body_material::BodyMaterial;
+use leviathan_lab::edit_history::EditHistoryPlugin;
 use leviathan_lab::gizmos::{GizmosManager, GizmosMode};
 use leviathan_lab::properties::PropertiesPanel;
 use leviathan_lab::spawner::Spawner;
 use leviathan_lab::symmetry::Symmetry;
-use leviathan_lab::{camera, screen, selector, symmetry};
+use leviathan_lab::{camera, edit_history, screen, selector, symmetry};
 
 fn main() {
     App::new()
@@ -31,6 +32,7 @@ fn main() {
         .insert_resource(selector::Selection::default())
         .insert_resource(symmetry::SymmetryMode::default())
         .insert_resource(symmetry::PendingSymmetricChanges::default())
+        .insert_resource(edit_history::EditHistory::default())
         .add_systems(Startup, (camera::Camera::spawn, screen::Screen::spawn_lights, Spawner::spawn_monster))
         .insert_resource(GizmosMode::default())
         .add_systems(
@@ -48,8 +50,12 @@ fn main() {
                     // changes can be applied
                     Symmetry::collect_changes,
                     Symmetry::apply,
-                )
-                    .chain(),
+                ).chain(),
+                (
+                    EditHistoryPlugin::undo, 
+                    EditHistoryPlugin::redo, 
+                    EditHistoryPlugin::record
+                ).chain()
             ),
         )
         .add_systems(EguiPrimaryContextPass, PropertiesPanel::show)
