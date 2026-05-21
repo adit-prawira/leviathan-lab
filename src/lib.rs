@@ -1,10 +1,6 @@
-pub mod body_material;
-pub mod camera;
-pub mod gizmos;
 pub mod model;
-pub mod properties;
-pub mod screen;
-pub mod selector;
-pub mod spawner;
-pub mod symmetry;
-pub mod edit_history;
+pub mod editor;
+pub mod history;
+pub mod rendering;
+pub mod scene;
+pub mod ui;

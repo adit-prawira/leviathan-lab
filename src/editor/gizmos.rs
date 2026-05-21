@@ -1,5 +1,5 @@
-use crate::camera::OrbitCamera;
-use crate::selector::Selection;
+use crate::scene::camera::OrbitCamera;
+use crate::editor::selector::Selection;
 use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
 

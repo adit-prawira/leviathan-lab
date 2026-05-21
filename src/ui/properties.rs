@@ -1,7 +1,7 @@
-use crate::body_material::BodyMaterial;
+use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::BodyPart;
-use crate::selector::Selection;
-use crate::symmetry::SymmetryMode;
+use crate::editor::selector::Selection;
+use crate::editor::symmetry::SymmetryMode;
 use bevy::prelude::*;
 use bevy_egui::egui::Response;
 use bevy_egui::{EguiContexts, egui};

@@ -1,10 +1,10 @@
-use crate::body_material::BodyMaterial;
-use crate::edit_history::PreviousBodyMaterial;
+use crate::model::body_material::BodyMaterial;
+use crate::history::edit_history::PreviousBodyMaterial;
 use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_part::PartType;
 use crate::model::material::MaterialData;
 use crate::model::monster::Monster;
-use crate::selector::{OriginalMaterial, Selector};
+use crate::editor::selector::{OriginalMaterial, Selector};
 use bevy::prelude::*;
 use std::collections::HashMap;
 

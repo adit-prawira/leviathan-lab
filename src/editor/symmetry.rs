@@ -1,4 +1,4 @@
-use crate::body_material::BodyMaterial;
+use crate::model::body_material::BodyMaterial;
 use bevy::prelude::*;
 
 const MIRROR_THRESHOLD: f32 = 0.05;

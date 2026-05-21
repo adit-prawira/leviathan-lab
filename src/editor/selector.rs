@@ -1,6 +1,8 @@
 use bevy::picking::pointer::PointerInteraction;
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
+use crate::model::body_part::BodyPart;
+use crate::editor::gizmos::GizmosHandle;
 
 #[derive(Resource, Default)]
 pub struct Selection {
@@ -21,8 +23,8 @@ impl Selector {
     pub fn deselect_on_click_away(
         mut selection: ResMut<Selection>,
         pointers: Query<&PointerInteraction>,
-        body_parts: Query<(), With<crate::model::body_part::BodyPart>>,
-        gizmos_handles: Query<(), With<crate::gizmos::GizmosHandle>>,
+        body_parts: Query<(), With<BodyPart>>,
+        gizmos_handles: Query<(), With<GizmosHandle>>,
         buttons: Res<ButtonInput<MouseButton>>,
         mut egui_contexts: EguiContexts,
     ) {

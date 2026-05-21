@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::body_material::BodyMaterial;
+use crate::model::body_material::BodyMaterial;
 
 #[derive(Component, Clone)]
 pub struct PreviousBodyMaterial(pub BodyMaterial);

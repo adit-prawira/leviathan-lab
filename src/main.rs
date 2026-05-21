@@ -1,13 +1,15 @@
 use bevy::prelude::*;
 use bevy::window::WindowResolution;
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
-use leviathan_lab::body_material::BodyMaterial;
-use leviathan_lab::edit_history::EditHistoryPlugin;
-use leviathan_lab::gizmos::{GizmosManager, GizmosMode};
-use leviathan_lab::properties::PropertiesPanel;
-use leviathan_lab::spawner::Spawner;
-use leviathan_lab::symmetry::Symmetry;
-use leviathan_lab::{camera, edit_history, screen, selector, symmetry};
+use leviathan_lab::model::body_material::BodyMaterial;
+use leviathan_lab::history::edit_history::{self, EditHistoryPlugin};
+use leviathan_lab::editor::gizmos::{GizmosManager, GizmosMode};
+use leviathan_lab::rendering::screen;
+use leviathan_lab::scene::camera;
+use leviathan_lab::ui::properties::PropertiesPanel;
+use leviathan_lab::scene::spawner::Spawner;
+use leviathan_lab::editor::symmetry::{self, Symmetry};
+use leviathan_lab::editor::selector::{self};
 
 fn main() {
     App::new()
