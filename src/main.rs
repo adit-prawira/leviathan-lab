@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy::window::WindowResolution;
+use bevy::window::WindowMode;
 use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 use leviathan_lab::model::body_material::BodyMaterial;
 use leviathan_lab::history::edit_history::{self, EditHistoryPlugin};
@@ -17,7 +17,7 @@ fn main() {
             DefaultPlugins.build().disable::<GilrsPlugin>().set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Leviathan Lab".into(),
-                    resolution: WindowResolution::new(1280, 720),
+                    mode: WindowMode::BorderlessFullscreen(MonitorSelection::Primary),
                     ..default()
                 }),
                 ..default()
