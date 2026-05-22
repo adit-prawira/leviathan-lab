@@ -57,12 +57,12 @@ src/
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | Skeleton in the Water | ✅ Done |
-| 2 | Grab a Part | ✅ Done |
-| 3 | Paint the Beast | ✅ Done |
+| 1 | Add baby monster in the Water | ✅ Done |
+| 2 | Translate body part position | ✅ Done |
+| 3 | Add color to body part | ✅ Done |
 | 4 | Body Builder | 🚧 In progress |
-| 5 | Spikes & Fins | 🔲 |
-| 6 | Make It Swim | 🔲 |
-| 7 | Deep Sea Polish | 🔲 |
+| 5 | Add Spikes & Fins make it creepy | 🔲 |
+| 6 | Add swimming animation | 🔲 |
+| 7 | Polishing | 🔲 |
 
 
