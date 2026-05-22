@@ -1,6 +1,7 @@
 use crate::scene::camera::OrbitCamera;
 use crate::editor::selector::Selection;
 use bevy::prelude::*;
+use core::fmt;
 use std::f32::consts::FRAC_PI_2;
 
 #[derive(Resource, Default, PartialEq, Clone, Copy)]
@@ -9,6 +10,16 @@ pub enum GizmosMode {
     Translate,
     Rotate,
     Scale,
+}
+
+impl fmt::Display for GizmosMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GizmosMode::Scale => write!(f, "Scale"),
+            GizmosMode::Rotate => write!(f, "Rotate"),
+            GizmosMode::Translate => write!(f, "Translate")
+        }
+    }
 }
 
 #[derive(Component)]

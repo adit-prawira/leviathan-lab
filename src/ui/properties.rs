@@ -1,3 +1,4 @@
+use crate::editor::gizmos::GizmosMode;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::BodyPart;
 use crate::editor::selector::Selection;
@@ -21,6 +22,7 @@ impl PropertiesPanel {
     pub fn show(
         selection: Res<Selection>,
         body_parts: Query<&BodyPart>,
+        mut mode: ResMut<GizmosMode>,
         mut contexts: EguiContexts,
         mut symmetry_mode: ResMut<SymmetryMode>,
         mut transforms: Query<&mut Transform>,
@@ -32,9 +34,8 @@ impl PropertiesPanel {
         let Ok(mut body_material) = body_materials.get_mut(entity) else { return; };
 
         // render panel on the right-hand side of the screen
-        egui::SidePanel::right("properties").min_width(MIN_SIDE_PANEL_WIDTH).show(
-            contexts.ctx_mut().expect("egui context"),
-            |ui| {
+        egui::SidePanel::right("properties").min_width(MIN_SIDE_PANEL_WIDTH)
+            .show(contexts.ctx_mut().expect("egui context to be available"),|ui| {
                 ui.heading("Properties");
                 ui.separator();
 
@@ -156,9 +157,18 @@ impl PropertiesPanel {
                         ui.add(egui::Slider::new(&mut body_material.metallic, 0.0..=1.0));
                         ui.end_row();
                     });
+                ui.separator();
 
                 ui.heading("Mode");
                 egui::Grid::new("Mode").spacing([8.0, 8.0]).show(ui, |ui| {
+                    ui.strong("Gizmos Mode");
+                    ui.horizontal(|ui| {
+                        ui.selectable_value(&mut *mode, GizmosMode::Translate, "Translate (T)");
+                        ui.selectable_value(&mut *mode, GizmosMode::Scale, "Scale (S)");
+                        ui.selectable_value(&mut *mode, GizmosMode::Rotate, "Rotate (R)");
+                    }); 
+                    ui.end_row();
+
                     ui.strong("Symmetry Mode");
                     ui.add(egui::Checkbox::new(
                         &mut symmetry_mode.enabled,
