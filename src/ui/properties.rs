@@ -8,6 +8,8 @@ use bevy_egui::{EguiContexts, egui};
 
 pub struct PropertiesPanel;
 
+const MIN_SIDE_PANEL_WIDTH: f32 = 150.0;
+
 /**
  * UI panel (Bevy UI or `bevy_egui`)
  * Shows selected part: name, position (x/y/z),
@@ -30,7 +32,7 @@ impl PropertiesPanel {
         let Ok(mut body_material) = body_materials.get_mut(entity) else { return; };
 
         // render panel on the right-hand side of the screen
-        egui::SidePanel::right("properties").min_width(400.0).show(
+        egui::SidePanel::right("properties").min_width(MIN_SIDE_PANEL_WIDTH).show(
             contexts.ctx_mut().expect("egui context"),
             |ui| {
                 ui.heading("Properties");
