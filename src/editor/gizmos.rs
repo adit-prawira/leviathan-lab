@@ -1,6 +1,7 @@
 use crate::scene::camera::OrbitCamera;
 use crate::editor::selector::Selection;
 use bevy::prelude::*;
+use core::fmt;
 use std::f32::consts::FRAC_PI_2;
 
 #[derive(Resource, Default, PartialEq, Clone, Copy)]
@@ -9,6 +10,16 @@ pub enum GizmosMode {
     Translate,
     Rotate,
     Scale,
+}
+
+impl fmt::Display for GizmosMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            GizmosMode::Scale => write!(f, "Scale"),
+            GizmosMode::Rotate => write!(f, "Rotate"),
+            GizmosMode::Translate => write!(f, "Translate")
+        }
+    }
 }
 
 #[derive(Component)]
@@ -142,6 +153,7 @@ impl GizmosManager {
         drag: On<Pointer<Drag>>,
         handles: Query<&GizmosHandle>,
         orbit: Res<OrbitCamera>,
+        mode: Res<GizmosMode>,
         mut transforms: Query<&mut Transform>,
     ) {
         let Ok(handle) = handles.get(drag.entity) else { return; };
@@ -149,12 +161,26 @@ impl GizmosManager {
         let scale: f32 = orbit.distance * 0.01;
         let delta = drag.delta;
 
-        match handle.axis {
-            axis if axis == Vec3::X => transform.translation.x += delta.x * scale,
-            axis if axis == Vec3::Y => transform.translation.y -= delta.y * scale,
-            axis if axis == Vec3::Z => transform.translation.z += delta.x * scale,
-            _ => {}
-        }
+        match *mode {
+            GizmosMode::Translate => match handle.axis {
+                axis if axis == Vec3::X => transform.translation.x -= delta.x * scale,
+                axis if axis == Vec3::Y => transform.translation.y -= delta.y * scale,
+                axis if axis == Vec3::Z => transform.translation.z += delta.x * scale,
+                _ => {}
+            },
+            GizmosMode::Scale => match handle.axis {
+                axis if axis == Vec3::X => transform.scale.x = (transform.scale.x + delta.x * scale).max(0.01),
+                axis if axis == Vec3::Y => transform.scale.y = (transform.scale.y - delta.y * scale).max(0.01),
+                axis if axis == Vec3::Z => transform.scale.z = (transform.scale.z + delta.x * scale).max(0.01),
+                _ => {}
+            },
+            GizmosMode::Rotate => match handle.axis {
+                axis if axis == Vec3::X => transform.rotation *= Quat::from_rotation_x(delta.y * scale),
+                axis if axis == Vec3::Y => transform.rotation *= Quat::from_rotation_y(delta.x * scale),
+                axis if axis == Vec3::Z => transform.rotation *= Quat::from_rotation_z(delta.x * scale),
+                _ => {}
+            }
+        }  
     }
 
     pub fn mode_keys(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {

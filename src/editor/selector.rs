@@ -4,6 +4,8 @@ use bevy_egui::EguiContexts;
 use crate::model::body_part::BodyPart;
 use crate::editor::gizmos::GizmosHandle;
 
+use super::sculpt_tool::SculptMode;
+
 #[derive(Resource, Default)]
 pub struct Selection {
     pub entity: Option<Entity>,
@@ -20,14 +22,16 @@ impl Selector {
         selection.entity = Some(event.entity);
     }
 
-    pub fn deselect_on_click_away(
-        mut selection: ResMut<Selection>,
+    pub fn deselect_on_click_away( 
         pointers: Query<&PointerInteraction>,
         body_parts: Query<(), With<BodyPart>>,
         gizmos_handles: Query<(), With<GizmosHandle>>,
         buttons: Res<ButtonInput<MouseButton>>,
+        mode: Res<SculptMode>,
+        mut selection: ResMut<Selection>,
         mut egui_contexts: EguiContexts,
     ) {
+        if *mode != SculptMode::Select {return;};
         if !buttons.just_pressed(MouseButton::Left) { return; }
         if egui_contexts.ctx_mut().expect("egui context").wants_pointer_input() { return; }
 
