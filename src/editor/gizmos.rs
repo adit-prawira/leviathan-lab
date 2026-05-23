@@ -39,7 +39,8 @@ pub struct GizmosManager;
  */
 impl GizmosManager {
     const LENGTH: f32 = 1.2;
-    pub fn draw(
+    
+    pub fn handle_draw(
         selection: Res<Selection>,
         mode: Res<GizmosMode>,
         transforms: Query<&GlobalTransform>,
@@ -69,7 +70,7 @@ impl GizmosManager {
         }
     }
 
-    pub fn update_handle_position(
+    pub fn handle_transform_change(
         mut handles: Query<(&GizmosHandle, &mut Transform)>,
         targets: Query<&GlobalTransform, Without<GizmosHandle>>
     ) {
@@ -79,7 +80,7 @@ impl GizmosManager {
         }
     }
 
-    pub fn sync_handles(
+    pub fn handle_sync(
         selection: Res<Selection>,
         mode: Res<GizmosMode>,
         handles: Query<Entity, With<GizmosHandle>>,
@@ -106,8 +107,7 @@ impl GizmosManager {
 
         for (axis, color) in axes {
             let handle_position: Vec3 = position + axis * Self::LENGTH;
-            commands
-                .spawn((
+            commands.spawn((
                     Mesh3d(meshes.add(Sphere::new(0.08).mesh().build())),
                     MeshMaterial3d(materials.add(StandardMaterial {
                         base_color: color,
@@ -122,11 +122,11 @@ impl GizmosManager {
                 ))
                 .observe(GizmosManager::on_drag_start)
                 .observe(GizmosManager::on_drag_end)
-                .observe(GizmosManager::on_drag);
+                .observe(GizmosManager::handle_drag);
         }
     }
 
-    pub fn on_drag(
+    pub fn handle_drag(
         drag: On<Pointer<Drag>>,
         handles: Query<&GizmosHandle>,
         orbit: Res<OrbitCamera>,
@@ -163,7 +163,12 @@ impl GizmosManager {
     /*
      * When drag start record current transform into previous transform
      * */
-    pub fn on_drag_start(drag: On<Pointer<DragStart>>, handles: Query<&GizmosHandle>, transforms: Query<&Transform>, mut commands: Commands) {
+    pub fn on_drag_start(
+        drag: On<Pointer<DragStart>>,
+        handles: Query<&GizmosHandle>, 
+        transforms: Query<&Transform>, 
+        mut commands: Commands
+    ) {
         let Ok(handle) = handles.get(drag.entity) else {return;};
         let Ok(current_transform) = transforms.get(handle.target) else {return;};
         commands.entity(handle.target).insert(PreviousTransform(*current_transform));
@@ -178,8 +183,7 @@ impl GizmosManager {
         handles: Query<&GizmosHandle>,
         transforms: Query<&Transform>,
         previous_transforms: Query<&PreviousTransform>,
-        mut history: ResMut<EditHistory>,
-        
+        mut history: ResMut<EditHistory>, 
     ) {
         let Ok(handle) = handles.get(drag.entity) else {return;};
         let Ok(new_transform) = transforms.get(handle.target) else {return;};
@@ -191,11 +195,13 @@ impl GizmosManager {
             old: previous_transform.0, 
             new: *new_transform 
         });
+
         if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
+        
         history.redo_stacks.clear();
     }
 
-    pub fn mode_keys(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {
+    pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {
         if keys.just_pressed(KeyCode::KeyT) { *mode = GizmosMode::Translate; }
         if keys.just_pressed(KeyCode::KeyS) { *mode = GizmosMode::Scale; }
         if keys.just_pressed(KeyCode::KeyR) { *mode = GizmosMode::Rotate; }

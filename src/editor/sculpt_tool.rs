@@ -102,7 +102,7 @@ pub struct BodyContext<'w, 's>{
 pub struct SculptTool;
 
 impl SculptTool {
-    pub fn on_add_body_part(
+    pub fn handle_add_body_part(
         mode: Res<SculptMode>,
         added_body_part_type: Res<BodyPartType>,
         control_ctx: ControlContext, 
@@ -161,12 +161,12 @@ impl SculptTool {
         spawn_ctx.commands.entity(parent_entity).add_child(child_entity);
     }
     
-    pub fn mode_keys(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<SculptMode>) {
+    pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<SculptMode>) {
         if keys.just_pressed(KeyCode::KeyA) {*mode = SculptMode::AddBodyPart;};
         if keys.just_pressed(KeyCode::Escape) {*mode = SculptMode::Select;};
     }
 
-    pub fn on_delete_body_part(
+    pub fn handle_delete_body_part(
         keys: Res<ButtonInput<KeyCode>>, 
         body_ctx: BodyContext, 
         parents: Query<&ChildOf>,

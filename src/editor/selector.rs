@@ -22,7 +22,7 @@ impl Selector {
         selection.entity = Some(event.entity);
     }
 
-    pub fn deselect_on_click_away( 
+    pub fn handle_deselect( 
         pointers: Query<&PointerInteraction>,
         body_parts: Query<(), With<BodyPart>>,
         gizmos_handles: Query<(), With<GizmosHandle>>,
@@ -44,7 +44,7 @@ impl Selector {
         if !hit_any_body_parts { selection.entity = None; }
     }
 
-    pub fn input_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut selection: ResMut<Selection>) {
+    pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut selection: ResMut<Selection>) {
         if keys.just_pressed(KeyCode::Escape) { selection.entity = None; }
     }
 }

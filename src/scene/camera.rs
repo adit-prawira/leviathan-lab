@@ -43,7 +43,8 @@ impl Camera {
             transform,
         ));
     }
-    pub fn orbit(
+
+    pub fn handle_orbit(
         mut orbit: ResMut<OrbitCamera>,
         mut query: Query<&mut Transform, With<Camera3d>>,
         mut motion: MessageReader<MouseMotion>,

@@ -4,7 +4,7 @@ use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 use leviathan_lab::editor;
 use leviathan_lab::editor::sculpt_tool::SculptTool;
 use leviathan_lab::model::body_material::BodyMaterial;
-use leviathan_lab::history::edit_history::{self, EditHistoryPlugin};
+use leviathan_lab::history::edit_history::{self, EditHistoryManager};
 use leviathan_lab::editor::gizmos::{GizmosManager, GizmosMode};
 use leviathan_lab::rendering::screen;
 use leviathan_lab::scene::camera;
@@ -46,28 +46,28 @@ fn main() {
         .add_systems(
             Update,
             (
-                camera::Camera::orbit,
-                selector::Selector::deselect_on_click_away,
-                selector::Selector::input_shortcuts,
-                GizmosManager::draw,
-                GizmosManager::sync_handles,
-                GizmosManager::mode_keys,
-                GizmosManager::update_handle_position,
-                BodyMaterial::sync,
+                camera::Camera::handle_orbit,
+                selector::Selector::handle_deselect,
+                selector::Selector::handle_button_input,
+                GizmosManager::handle_draw,
+                GizmosManager::handle_sync,
+                GizmosManager::handle_button_input,
+                GizmosManager::handle_transform_change,
+                BodyMaterial::handle_sync,
                 (
                     // changes must run collected before
                     // changes can be applied
-                    Symmetry::collect_changes,
-                    Symmetry::apply,
+                    Symmetry::handle_change,
+                    Symmetry::handle_apply,
                 ).chain(),
                 (
-                    EditHistoryPlugin::undo, 
-                    EditHistoryPlugin::redo, 
-                    EditHistoryPlugin::record
+                    EditHistoryManager::handle_undo, 
+                    EditHistoryManager::handle_redo, 
+                    EditHistoryManager::handle_record
                 ).chain(),
-                SculptTool::mode_keys, 
-                SculptTool::on_add_body_part,
-                SculptTool::on_delete_body_part
+                SculptTool::handle_button_input, 
+                SculptTool::handle_add_body_part,
+                SculptTool::handle_delete_body_part
             ),
         )
         .add_systems(EguiPrimaryContextPass, PropertiesPanel::show)

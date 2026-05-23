@@ -23,7 +23,7 @@ pub struct Symmetry;
 + counterpart on the opposite X side.
 + */
 impl Symmetry {
-    pub fn collect_changes(
+    pub fn handle_change(
         changes: Query<(Entity, &BodyMaterial, &GlobalTransform), Changed<BodyMaterial>>,
         mut pending_symmetric_changes: ResMut<PendingSymmetricChanges>,
     ) {
@@ -39,7 +39,7 @@ impl Symmetry {
             .collect();
     }
 
-    pub fn apply(
+    pub fn handle_apply(
         mode: Res<SymmetryMode>,
         pending_symmetric_changes: Res<PendingSymmetricChanges>,
         all_body_materials: Query<(Entity, &GlobalTransform)>,

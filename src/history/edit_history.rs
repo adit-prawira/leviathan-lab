@@ -47,21 +47,22 @@ pub struct EditHistory {
     pub restoring: bool
 }
 
-pub struct EditHistoryPlugin;
-
 #[derive(SystemParam)]
 pub struct BodyContext<'w, 's> {
     transforms: Query<'w, 's, &'static mut Transform>,
     body_materials: Query<'w, 's, &'static mut BodyMaterial>,
     hierarychy: ResMut<'w, BodyHierarchy>
 }
+
+pub struct EditHistoryManager;
+
 /*
  * Responsible to track if changes is made on monster body material
  * Responsible to undo changes (reverse changes)
  * Responsible to redo (reversed the undo)
  * */
-impl EditHistoryPlugin {
-    pub fn record(
+impl EditHistoryManager {
+    pub fn handle_record(
         changes: Query<(Entity, &BodyMaterial, &PreviousBodyMaterial), Changed<BodyMaterial>>,
         mut history: ResMut<EditHistory>,
         mut commands: Commands
@@ -85,7 +86,7 @@ impl EditHistoryPlugin {
         }
     }
 
-    pub fn undo(
+    pub fn handle_undo(
         keys: Res<ButtonInput<KeyCode>>,
         mut body_ctx: BodyContext,
         mut history: ResMut<EditHistory>,
@@ -123,7 +124,8 @@ impl EditHistoryPlugin {
             },
             Action::DeletePart { ref mut snapshot } => {
                 history.restoring = true;
-                let resolved_parent = snapshot.parent.and_then(|_| body_ctx.hierarychy.entities.get(&snapshot.part.parent_id?).copied());
+                let resolved_parent = snapshot.parent.
+                    and_then(|_| body_ctx.hierarychy.entities.get(&snapshot.part.parent_id?).copied());
                 Self::restore_snapshot(snapshot, resolved_parent, &mut commands, &mut meshes, &mut materials, &mut body_ctx.hierarychy);
                 history.restoring = false;
             }
@@ -133,7 +135,7 @@ impl EditHistoryPlugin {
         history.redo_stacks.push(action);
     }
 
-    pub fn redo(
+    pub fn handle_redo(
         keys: Res<ButtonInput<KeyCode>>,
         mut transforms: Query<&mut Transform>,
         mut body_materials: Query<&mut BodyMaterial>,
@@ -209,8 +211,10 @@ impl EditHistoryPlugin {
             body_part_snapshot.material.clone(),
             PreviousBodyMaterial(body_part_snapshot.material.clone()) 
         )).observe(Selector::on_press).id();
+
         body_part_snapshot.restored_entity = Some(entity);
         hierarchy.entities.insert(body_part_snapshot.part.id, entity);
+        
         if let Some(parent_entity) = parent {
             commands.entity(parent_entity).add_child(entity);
         }
