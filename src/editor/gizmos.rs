@@ -1,3 +1,4 @@
+use crate::history::edit_history::{Action, EditHistory, PreviousTransform, MAX_HISTORY_COUNT};
 use crate::scene::camera::OrbitCamera;
 use crate::editor::selector::Selection;
 use bevy::prelude::*;
@@ -51,56 +52,30 @@ impl GizmosManager {
 
         match *mode {
             GizmosMode::Translate => {
-                gizmos.arrow(
-                    position,
-                    position + Vec3::X * Self::LENGTH,
-                    Color::srgb(1.0, 0.2, 0.2),
-                );
-                gizmos.arrow(
-                    position,
-                    position + Vec3::Y * Self::LENGTH,
-                    Color::srgb(0.2, 1.0, 0.2),
-                );
-                gizmos.arrow(
-                    position,
-                    position + Vec3::Z * Self::LENGTH,
-                    Color::srgb(0.2, 0.2, 1.0),
-                );
+                gizmos.arrow(position, position + Vec3::X * Self::LENGTH, Color::srgb(1.0, 0.2, 0.2));
+                gizmos.arrow(position, position + Vec3::Y * Self::LENGTH, Color::srgb(0.2, 1.0, 0.2));
+                gizmos.arrow(position, position + Vec3::Z * Self::LENGTH, Color::srgb(0.2, 0.2, 1.0));
             }
             GizmosMode::Rotate => {
-                gizmos.circle(
-                    Isometry3d::new(position, Quat::from_rotation_z(0.0)),
-                    Self::LENGTH,
-                    Color::srgb(1.0, 0.2, 0.2),
-                );
-                gizmos.circle(
-                    Isometry3d::new(position, Quat::from_rotation_x(FRAC_PI_2)),
-                    Self::LENGTH,
-                    Color::srgb(0.2, 1.0, 0.2),
-                );
-                gizmos.circle(
-                    Isometry3d::new(position, Quat::from_rotation_y(FRAC_PI_2)),
-                    Self::LENGTH,
-                    Color::srgb(0.2, 0.2, 1.0),
-                );
-            }
+                 gizmos.circle(Isometry3d::new(position, Quat::from_rotation_z(0.0)), Self::LENGTH, Color::srgb(0.2, 1.0, 0.2)); 
+                 gizmos.circle(Isometry3d::new(position, Quat::from_rotation_x(FRAC_PI_2)), Self::LENGTH, Color::srgb(1.0, 0.2, 0.2));
+                 gizmos.circle(Isometry3d::new(position, Quat::from_rotation_y(FRAC_PI_2)), Self::LENGTH, Color::srgb(0.2, 0.2, 1.0));
+             }
             GizmosMode::Scale => {
-                gizmos.arrow(
-                    position,
-                    position + Vec3::X * Self::LENGTH,
-                    Color::srgb(1.0, 0.2, 0.2),
-                );
-                gizmos.arrow(
-                    position,
-                    position + Vec3::Y * Self::LENGTH,
-                    Color::srgb(0.2, 1.0, 0.2),
-                );
-                gizmos.arrow(
-                    position,
-                    position + Vec3::Z * Self::LENGTH,
-                    Color::srgb(0.2, 0.2, 1.0),
-                );
+                gizmos.arrow(position, position + Vec3::X * Self::LENGTH, Color::srgb(1.0, 0.2, 0.2));
+                gizmos.arrow(position, position + Vec3::Y * Self::LENGTH, Color::srgb(0.2, 1.0, 0.2));
+                gizmos.arrow(position, position + Vec3::Z * Self::LENGTH, Color::srgb(0.2, 0.2, 1.0));
             }
+        }
+    }
+
+    pub fn update_handle_position(
+        mut handles: Query<(&GizmosHandle, &mut Transform)>,
+        targets: Query<&GlobalTransform, Without<GizmosHandle>>
+    ) {
+        for (handle, mut handle_tranform) in &mut handles {
+            let Ok(target_global_transform) = targets.get(handle.target) else {continue;};
+            handle_tranform.translation = target_global_transform.translation() + handle.axis * Self::LENGTH;
         }
     }
 
@@ -145,6 +120,8 @@ impl GizmosManager {
                         target: target_entity,
                     },
                 ))
+                .observe(GizmosManager::on_drag_start)
+                .observe(GizmosManager::on_drag_end)
                 .observe(GizmosManager::on_drag);
         }
     }
@@ -181,6 +158,41 @@ impl GizmosManager {
                 _ => {}
             }
         }  
+    }
+
+    /*
+     * When drag start record current transform into previous transform
+     * */
+    pub fn on_drag_start(drag: On<Pointer<DragStart>>, handles: Query<&GizmosHandle>, transforms: Query<&Transform>, mut commands: Commands) {
+        let Ok(handle) = handles.get(drag.entity) else {return;};
+        let Ok(current_transform) = transforms.get(handle.target) else {return;};
+        commands.entity(handle.target).insert(PreviousTransform(*current_transform));
+    }
+
+    /*
+     * When drag end check if current position and previous position the same,
+     * Othwerwise, record change and push action to undo_stacks
+     * */
+    pub fn on_drag_end(
+        drag: On<Pointer<DragEnd>>,
+        handles: Query<&GizmosHandle>,
+        transforms: Query<&Transform>,
+        previous_transforms: Query<&PreviousTransform>,
+        mut history: ResMut<EditHistory>,
+        
+    ) {
+        let Ok(handle) = handles.get(drag.entity) else {return;};
+        let Ok(new_transform) = transforms.get(handle.target) else {return;};
+        let Ok(previous_transform) = previous_transforms.get(handle.target) else {return;};
+
+        if previous_transform.0 == *new_transform {return;};
+        history.undo_stacks.push(Action::TransformEdit { 
+            entity: handle.target, 
+            old: previous_transform.0, 
+            new: *new_transform 
+        });
+        if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
+        history.redo_stacks.clear();
     }
 
     pub fn mode_keys(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {

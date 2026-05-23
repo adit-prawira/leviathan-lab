@@ -52,6 +52,7 @@ fn main() {
                 GizmosManager::draw,
                 GizmosManager::sync_handles,
                 GizmosManager::mode_keys,
+                GizmosManager::update_handle_position,
                 BodyMaterial::sync,
                 (
                     // changes must run collected before
