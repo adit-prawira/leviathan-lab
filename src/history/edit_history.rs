@@ -1,16 +1,26 @@
 use bevy::prelude::*;
-use crate::model::body_material::BodyMaterial;
+use crate::model::body_material::{BodyMaterial};
 
 #[derive(Component, Clone)]
 pub struct PreviousBodyMaterial(pub BodyMaterial);
 
-pub struct Action {
-    pub entity: Entity,
-    pub old_body_material: BodyMaterial, 
-    pub new_body_material: BodyMaterial
+#[derive(Component, Clone)]
+pub struct PreviousTransform(pub Transform);
+
+pub enum Action {
+    MaterialEdit {
+        entity: Entity,
+        old: BodyMaterial, 
+        new: BodyMaterial
+    },
+    TransformEdit {
+        entity: Entity,
+        old: Transform,
+        new: Transform
+    }
 }
 
-const MAX_HISTORY_COUNT: usize = 100;
+pub const MAX_HISTORY_COUNT: usize = 100;
 
 // Register as bevy resource
 #[derive(Resource, Default)]
@@ -41,10 +51,10 @@ impl EditHistoryPlugin {
         for (entity, current_body_material, previous_body_material) in &changes {
             let is_changed = *current_body_material != previous_body_material.0;
             if !is_changed {continue;};
-            history.undo_stacks.push(Action{
+            history.undo_stacks.push(Action::MaterialEdit{
                 entity, 
-                old_body_material: previous_body_material.0.clone(),
-                new_body_material: current_body_material.clone()
+                old: previous_body_material.0.clone(),
+                new: current_body_material.clone()
             });
             if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
             history.redo_stacks.clear();
@@ -54,6 +64,7 @@ impl EditHistoryPlugin {
 
     pub fn undo(
         keys: Res<ButtonInput<KeyCode>>,
+        mut transforms: Query<&mut Transform>,
         mut body_materials: Query<&mut BodyMaterial>,
         mut history: ResMut<EditHistory>,
         mut commands: Commands
@@ -65,25 +76,36 @@ impl EditHistoryPlugin {
         if !is_combination_pressed {return;};
 
         let Some(action) = history.undo_stacks.pop() else {return;};
-        let Ok(mut body_material) = body_materials.get_mut(action.entity) else {return;};
-    
-        history.restoring = true;
-        
-        // applying old material to current material as a whole
-        *body_material = action.old_body_material.clone();
-        
-        // queue to register previous body material
-        commands.entity(action.entity)
-            .insert(PreviousBodyMaterial(action.old_body_material.clone()));
 
-        history.restoring = false;
+        match action {
+            Action::MaterialEdit { entity, ref old, .. } => {
+                let Ok(mut body_material) = body_materials.get_mut(entity) else {return;};
+                history.restoring = true;
+        
+                // applying old material to current material as a whole
+                *body_material = old.clone();
+                
+                // queue to register previous body material
+                commands.entity(entity)
+                    .insert(PreviousBodyMaterial(old.clone()));
 
+                history.restoring = false;
+            },
+            Action::TransformEdit { entity, old, .. } => {
+                let Ok(mut transform) = transforms.get_mut(entity) else {return;};
+                history.restoring = true;
+                *transform = old;
+                history.restoring = false;
+            }
+        };
+          
         // save to redo stack so this undo can be reversed
         history.redo_stacks.push(action);
     }
 
     pub fn redo(
         keys: Res<ButtonInput<KeyCode>>,
+        mut transforms: Query<&mut Transform>,
         mut body_materials: Query<&mut BodyMaterial>,
         mut history: ResMut<EditHistory>,
         mut commands: Commands
@@ -95,16 +117,24 @@ impl EditHistoryPlugin {
         if !is_combination_pressed {return;}
 
         let Some(action) = history.redo_stacks.pop() else {return;};
-        let Ok(mut body_material) = body_materials.get_mut(action.entity) else {return;};
-
-        history.restoring = true;
-
-        *body_material = action.new_body_material.clone();
-        commands.entity(action.entity)
-            .insert(PreviousBodyMaterial(action.new_body_material.clone()));
-        
-        history.restoring = false;
-        
+     
+        match action {
+            Action::MaterialEdit { entity, ref new, .. } => { 
+                let Ok(mut body_material) = body_materials.get_mut(entity) else {return;};
+                history.restoring = true;
+                *body_material = new.clone();
+                commands.entity(entity)
+                    .insert(PreviousBodyMaterial(new.clone()));
+                history.restoring = false;
+            },
+            Action::TransformEdit { entity, new, .. } => {
+                let Ok(mut transform) = transforms.get_mut(entity) else {return;};
+                history.restoring = true;
+                *transform = new;
+                history.restoring = false;
+            }
+        }
+                
         // save to undo stack so this redo can be reversed
         history.undo_stacks.push(action);
     }
