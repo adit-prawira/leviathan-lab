@@ -67,6 +67,7 @@ fn main() {
                 ).chain(),
                 SculptTool::mode_keys, 
                 SculptTool::on_add_body_part,
+                SculptTool::on_delete_body_part
             ),
         )
         .add_systems(EguiPrimaryContextPass, PropertiesPanel::show)

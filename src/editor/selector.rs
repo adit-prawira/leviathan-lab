@@ -46,7 +46,5 @@ impl Selector {
 
     pub fn input_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut selection: ResMut<Selection>) {
         if keys.just_pressed(KeyCode::Escape) { selection.entity = None; }
-        // Placeholder, the intention is to delete an entity
-        if keys.just_pressed(KeyCode::Delete) || keys.just_pressed(KeyCode::Backspace) { selection.entity = None; }
     }
 }
