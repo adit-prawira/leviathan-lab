@@ -65,4 +65,6 @@ src/
 | 6 | Add swimming animation | 🔲 |
 | 7 | Polishing | 🔲 |
 
+## Still a Hatchling for Now 🙃
+<img width="1512" height="952" alt="Screenshot 2026-05-24 at 8 37 20 pm" src="https://github.com/user-attachments/assets/e238876d-9ff6-44b6-81c4-55a1d9b8db42" />
 
