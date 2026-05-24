@@ -36,6 +36,13 @@ pub enum Action {
     },
     DeletePart {
         snapshot: BodyPartSnapshot
+    },
+    AssignParentEntity {
+        entity: Entity,
+        old_parent: Option<Entity>,
+        old_transform: Transform,
+        new_parent: Option<Entity>,
+        new_transform: Transform
     }
 }
 
@@ -109,7 +116,7 @@ impl EditHistoryManager {
         
                 // applying old material to current material as a whole
                 *body_material = old.clone();
-                
+    
                 // queue to register previous body material
                 commands.entity(entity)
                     .insert(PreviousBodyMaterial(old.clone()));
@@ -128,7 +135,20 @@ impl EditHistoryManager {
                     and_then(|_| body_ctx.hierarychy.entities.get(&snapshot.part.parent_id?).copied());
                 Self::restore_snapshot(snapshot, resolved_parent, &mut commands, &mut meshes, &mut materials, &mut body_ctx.hierarychy);
                 history.restoring = false;
-            }
+            },
+            Action::AssignParentEntity { entity, old_parent, old_transform, .. } => {
+                if let Ok(mut transform) = body_ctx.transforms.get_mut(entity) {
+                    *transform = old_transform;
+                }
+                match old_parent {
+                    Some(parent) => {
+                        commands.entity(parent).add_child(entity);
+                    },
+                    None => {
+                        commands.entity(entity).remove::<ChildOf>();
+                    }
+                }
+            },
         };
           
         // save to redo stack so this undo can be reversed
@@ -172,7 +192,21 @@ impl EditHistoryManager {
                 hierarychy.entities.remove(&snapshot.part.id);
                 commands.entity(entity).despawn();
                 history.restoring = false;
-            }
+            },
+            Action::AssignParentEntity { entity, new_parent, new_transform, .. } => {
+                if let Ok(mut transform) = transforms.get_mut(entity) {
+                    *transform = new_transform;
+                }
+
+                match new_parent {
+                    Some(parent) => {
+                        commands.entity(parent).add_child(entity);
+                    },
+                    None => {
+                        commands.entity(entity).remove::<ChildOf>();
+                    },
+                }
+            },
         }
                 
         // save to undo stack so this redo can be reversed

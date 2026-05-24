@@ -14,6 +14,7 @@ type MaterialSnapshot = (Entity, BodyMaterial, Vec3);
 pub struct PendingSymmetricChanges {
     pub material_snapshots: Vec<MaterialSnapshot>,
 }
+
 pub struct Symmetry;
 
 /*
