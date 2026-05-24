@@ -4,3 +4,4 @@ pub mod history;
 pub mod rendering;
 pub mod scene;
 pub mod ui;
+pub mod plugin;
