@@ -1,13 +1,11 @@
 use bevy::prelude::*;
 use bevy::window::WindowMode;
 use bevy_egui::EguiPlugin;
-use leviathan_lab::plugin::edit_history_plugin::EditHistoryPlugin;
-use leviathan_lab::plugin::gizmos_plugin::GizmosPlugin;
+use leviathan_lab::plugin::editor_plugin::EditorPlugin;
+use leviathan_lab::plugin::history_plugin::HistoryPlugin;
 use leviathan_lab::plugin::model_plugin::ModelPlugin;
+use leviathan_lab::plugin::rendering_plugin::RenderingPlugin;
 use leviathan_lab::plugin::scene_plugin::ScenePlugin;
-use leviathan_lab::plugin::sculpt_tool_plugin::SculptToolPlugin;
-use leviathan_lab::plugin::selector_plugin::SelectorPlugin;
-use leviathan_lab::plugin::symmetry_plugin::SymmetryPlugin;
 use leviathan_lab::plugin::ui_plugin::UiPlugin;
 
 fn main() {
@@ -27,12 +25,10 @@ fn main() {
             MeshPickingPlugin,
             EguiPlugin::default(),
             ModelPlugin,
+            RenderingPlugin,
             ScenePlugin,
-            SelectorPlugin,
-            GizmosPlugin,
-            SymmetryPlugin,
-            SculptToolPlugin,
-            EditHistoryPlugin,
+            EditorPlugin, 
+            HistoryPlugin,
             UiPlugin
         ))
         .insert_resource(GlobalAmbientLight {

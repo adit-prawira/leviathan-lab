@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use crate::history::edit_history::{EditHistory, EditHistoryManager};
-pub struct EditHistoryPlugin;
 
-impl Plugin for EditHistoryPlugin {
+pub struct HistoryPlugin;
+
+impl Plugin for HistoryPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.insert_resource(EditHistory::default())
             .add_systems(Update, (
