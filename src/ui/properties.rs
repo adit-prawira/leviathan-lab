@@ -1,7 +1,8 @@
 use crate::editor::gizmos::GizmosMode;
+use crate::editor::sculpt_tool::PendingResize;
 use crate::history::edit_history::{Action, EditHistory};
 use crate::model::body_material::BodyMaterial;
-use crate::model::body_part::{BodyPart};
+use crate::model::body_part::{BodyPart, PartType};
 use crate::editor::selector::Selection;
 use crate::editor::symmetry::SymmetryMode;
 use bevy::ecs::system::SystemParam;
@@ -24,7 +25,8 @@ pub struct TransformContext<'w, 's> {
 pub struct EditorContext<'w> {
     mode: ResMut<'w, GizmosMode>,
     symmetry_mode: ResMut<'w, SymmetryMode>,
-    history: ResMut<'w, EditHistory>
+    history: ResMut<'w, EditHistory>,
+    pending_resize: ResMut<'w, PendingResize>
 }
 
 #[derive(SystemParam)]
@@ -44,6 +46,7 @@ struct EntityReference<'a> {
     selected_entity: &'a Entity,
     entity: &'a Entity
 }
+
 /**
  * UI panel (Bevy UI or `bevy_egui`)
  * Shows selected part: name, position (x/y/z),
@@ -68,16 +71,17 @@ impl PropertiesPanel {
         egui::SidePanel::right("properties").min_width(MIN_SIDE_PANEL_WIDTH)
             .show(contexts.ctx_mut().expect("egui context to be available"),|ui| {
                 Self::render_properties_section(ui, entity, body_part, &mut transform_ctx.transforms);
-                ui.separator();
- 
-                Self::render_material_section(ui, &mut body_material); 
-                ui.separator();
+
+                Self::render_shape_section(ui, entity, body_part, &mut editor_ctx.pending_resize); 
+
+                Self::render_material_section(ui, &mut body_material);  
 
                 let current_mode = *editor_ctx.mode;
                 let mut local_mode = current_mode;
+                
                 Self::render_mode_section(ui, &mut local_mode, &mut editor_ctx.symmetry_mode);
-                if local_mode != current_mode {*editor_ctx.mode = local_mode;};
-                ui.separator();
+                
+                if local_mode != current_mode {*editor_ctx.mode = local_mode;}; 
 
                 Self::render_hierarchy_section(
                     ui, 
@@ -175,47 +179,47 @@ impl PropertiesPanel {
             });
             ui.end_row();
         });
+        ui.separator();
     } 
 
     fn render_material_section(ui: &mut Ui, body_material: &mut BodyMaterial) {
         ui.heading("Material");
         ui.separator();
 
-        egui::Grid::new("Material")
-            .spacing([8.0, 8.0])
-            .show(ui, |ui| {
-                ui.strong("Color");
-                let linear = body_material.base_color.to_linear();
-                let mut egui_color = egui::Color32::from_rgba_premultiplied(
-                    (linear.red * 255.0) as u8,
-                    (linear.green * 255.0) as u8,
-                    (linear.blue * 255.0) as u8,
-                    (linear.alpha * 255.0) as u8,
-                );
-                let color_picker = egui::color_picker::color_edit_button_srgba(
-                    ui,
-                    &mut egui_color,
-                    egui::color_picker::Alpha::Opaque,
-                );
+        egui::Grid::new("Material").spacing([8.0, 8.0]).show(ui, |ui| {
+            ui.strong("Color");
+            let linear = body_material.base_color.to_linear();
+            let mut egui_color = egui::Color32::from_rgba_premultiplied(
+                (linear.red * 255.0) as u8,
+                (linear.green * 255.0) as u8,
+                (linear.blue * 255.0) as u8,
+                (linear.alpha * 255.0) as u8,
+            );
+            let color_picker = egui::color_picker::color_edit_button_srgba(
+                ui,
+                &mut egui_color,
+                egui::color_picker::Alpha::Opaque,
+            );
 
-                if color_picker.changed() {
-                    let (r, g, b, a) = egui_color.to_tuple();
-                    body_material.base_color = Color::srgba(
-                        r as f32 / 255.0,
-                        g as f32 / 255.0,
-                        b as f32 / 255.0,
-                        a as f32 / 255.0,
-                    );
-                }
-                ui.end_row();
-                ui.strong("Roughness");
-                ui.add(egui::Slider::new(&mut body_material.roughness, 0.0..=1.0));
-                ui.end_row();
+            if color_picker.changed() {
+                let (r, g, b, a) = egui_color.to_tuple();
+                body_material.base_color = Color::srgba(
+                    r as f32 / 255.0,
+                    g as f32 / 255.0,
+                    b as f32 / 255.0,
+                    a as f32 / 255.0,
+                );
+            }
+            ui.end_row();
+            ui.strong("Roughness");
+            ui.add(egui::Slider::new(&mut body_material.roughness, 0.0..=1.0));
+            ui.end_row();
 
-                ui.strong("Metallic");
-                ui.add(egui::Slider::new(&mut body_material.metallic, 0.0..=1.0));
-                ui.end_row();
-            });
+            ui.strong("Metallic");
+            ui.add(egui::Slider::new(&mut body_material.metallic, 0.0..=1.0));
+            ui.end_row();
+        });
+        ui.separator();
     }
 
     fn render_mode_section(ui: &mut Ui, local_mode: &mut GizmosMode, symmetry_mode: &mut SymmetryMode) {
@@ -238,6 +242,8 @@ impl PropertiesPanel {
                 "Enable Symmetry Mode",
             ));
         });
+
+        ui.separator();
     }
 
     fn render_hierarchy_section<'a>(
@@ -405,5 +411,53 @@ impl PropertiesPanel {
                 Err(_) => return false
             }
         };
+    }
+
+    fn render_shape_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, pending: &mut PendingResize){
+        ui.heading("Shape");
+        ui.separator();
+
+        let mut changed = false;
+
+        egui::Grid::new("Shape").spacing([8.0, 8.0]).show(ui, |ui| {
+            match body_part.part_type {
+                PartType::Sphere { radius } => {
+                    ui.strong("Radius");
+                    let mut input_radius = pending.radius.unwrap_or(radius);
+                    
+                    let radius_field = ui.add(egui::Slider::new(&mut input_radius, 0.1..= 2.0));
+                    if radius_field.changed() {
+                        pending.radius = Some(input_radius);
+                        changed = true;
+                    }
+                },
+                PartType::Capsule { radius, half_length } => {
+                    ui.strong("Radius");
+                    let mut input_radius = pending.radius.unwrap_or(radius);
+                    let radius_field = ui.add(egui::Slider::new(&mut input_radius, 0.1..=2.0));
+                    
+                    if radius_field.changed() {
+                        pending.radius = Some(input_radius);
+                        changed = true;
+                    }
+                    ui.end_row();
+
+                    ui.strong("Half-length");
+                    let mut input_half_length = pending.half_length.unwrap_or(half_length);
+                    let half_length_field = ui.add(egui::Slider::new(&mut input_half_length, 0.1..=5.0));
+
+                    if half_length_field.changed() {
+                        pending.half_length = Some(input_half_length);
+                        changed = true;
+                    }
+                }
+            }
+        });
+
+        if changed {
+            pending.entity = Some(entity);
+        }
+
+        ui.separator();
     }
 }

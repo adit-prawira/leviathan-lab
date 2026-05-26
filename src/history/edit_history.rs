@@ -13,6 +13,9 @@ pub struct PreviousBodyMaterial(pub BodyMaterial);
 #[derive(Component, Clone)]
 pub struct PreviousTransform(pub Transform);
 
+#[derive(Component, Clone)]
+pub struct PreviousPartType(pub PartType);
+
 #[derive(Clone)]
 pub struct BodyPartSnapshot {
     pub part: BodyPart,
@@ -33,6 +36,11 @@ pub enum Action {
         entity: Entity,
         old: Transform,
         new: Transform
+    },
+    ResizePartType {
+        entity: Entity,
+        old: PartType,
+        new: PartType
     },
     DeletePart {
         snapshot: BodyPartSnapshot
@@ -58,6 +66,9 @@ pub struct EditHistory {
 pub struct BodyContext<'w, 's> {
     transforms: Query<'w, 's, &'static mut Transform>,
     body_materials: Query<'w, 's, &'static mut BodyMaterial>,
+    body_parts: Query<'w, 's, &'static mut BodyPart>,
+    part_mesh_query: Query<'w, 's, &'static Mesh3d>,
+    meshes: ResMut<'w, Assets<Mesh>>,
     hierarychy: ResMut<'w, BodyHierarchy>
 }
 
@@ -97,8 +108,7 @@ impl EditHistoryManager {
         keys: Res<ButtonInput<KeyCode>>,
         mut body_ctx: BodyContext,
         mut history: ResMut<EditHistory>,
-        mut commands: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
+        mut commands: Commands, 
         mut materials: ResMut<Assets<StandardMaterial>>,
     ){
         let is_combination_pressed: bool = (Self::is_ctrl_pressed(&keys) || Self::is_cmd_pressed(&keys)) 
@@ -133,7 +143,17 @@ impl EditHistoryManager {
                 history.restoring = true;
                 let resolved_parent = snapshot.parent.
                     and_then(|_| body_ctx.hierarychy.entities.get(&snapshot.part.parent_id?).copied());
-                Self::restore_snapshot(snapshot, resolved_parent, &mut commands, &mut meshes, &mut materials, &mut body_ctx.hierarychy);
+                Self::restore_snapshot(snapshot, resolved_parent, &mut commands, &mut body_ctx.meshes, &mut materials, &mut body_ctx.hierarychy);
+                history.restoring = false;
+            },
+            Action::ResizePartType { entity, ref old, .. } => {
+                let Ok(mesh3d) = body_ctx.part_mesh_query.get(entity) else {return;};
+                let Ok(mut body_part) = body_ctx.body_parts.get_mut(entity) else {return;};
+                let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
+
+                history.restoring = true;
+                body_part.part_type = old.clone();         
+                *mesh = body_part.part_type.build_mesh();
                 history.restoring = false;
             },
             Action::AssignParentEntity { entity, old_parent, old_transform, .. } => {
@@ -157,11 +177,9 @@ impl EditHistoryManager {
 
     pub fn handle_redo(
         keys: Res<ButtonInput<KeyCode>>,
-        mut transforms: Query<&mut Transform>,
-        mut body_materials: Query<&mut BodyMaterial>,
+        mut body_ctx: BodyContext, 
         mut history: ResMut<EditHistory>,
-        mut commands: Commands,
-        mut hierarychy: ResMut<BodyHierarchy>
+        mut commands: Commands, 
     ) {
         let is_combination_pressed: bool = (Self::is_ctrl_pressed(&keys) || Self::is_cmd_pressed(&keys))
             && Self::is_shift_pressed(&keys)
@@ -173,7 +191,7 @@ impl EditHistoryManager {
      
         match action {
             Action::MaterialEdit { entity, ref new, .. } => { 
-                let Ok(mut body_material) = body_materials.get_mut(entity) else {return;};
+                let Ok(mut body_material) = body_ctx.body_materials.get_mut(entity) else {return;};
                 history.restoring = true;
                 *body_material = new.clone();
                 commands.entity(entity)
@@ -181,7 +199,7 @@ impl EditHistoryManager {
                 history.restoring = false;
             },
             Action::TransformEdit { entity, new, .. } => {
-                let Ok(mut transform) = transforms.get_mut(entity) else {return;};
+                let Ok(mut transform) = body_ctx.transforms.get_mut(entity) else {return;};
                 history.restoring = true;
                 *transform = new;
                 history.restoring = false;
@@ -189,12 +207,21 @@ impl EditHistoryManager {
             Action::DeletePart { ref mut snapshot } => {
                 let Some(entity) = snapshot.restored_entity else {return;};
                 history.restoring = true;
-                hierarychy.entities.remove(&snapshot.part.id);
+                body_ctx.hierarychy.entities.remove(&snapshot.part.id);
                 commands.entity(entity).despawn();
                 history.restoring = false;
             },
+            Action::ResizePartType { entity, ref new, .. } => {
+                let Ok(mesh3d) = body_ctx.part_mesh_query.get(entity) else {return;};
+                let Ok(mut body_part) = body_ctx.body_parts.get_mut(entity) else {return;};
+                let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
+                history.restoring = true;
+                body_part.part_type = new.clone();
+                *mesh = body_part.part_type.build_mesh();
+                history.restoring = false;
+            },
             Action::AssignParentEntity { entity, new_parent, new_transform, .. } => {
-                if let Ok(mut transform) = transforms.get_mut(entity) {
+                if let Ok(mut transform) = body_ctx.transforms.get_mut(entity) {
                     *transform = new_transform;
                 }
 
@@ -221,14 +248,7 @@ impl EditHistoryManager {
         materials: &mut Assets<StandardMaterial>,
         hierarchy: &mut BodyHierarchy
     ) {
-        let mesh = match body_part_snapshot.part.part_type {
-            PartType::Sphere { radius } => Sphere::new(radius).mesh().build(),
-            PartType::Capsule { radius, half_length } => Capsule3d{
-                radius,
-                half_length
-            }.mesh().build()
-        };
-
+        let mesh = body_part_snapshot.part.part_type.build_mesh();
         let material_handle = materials.add(StandardMaterial{
             base_color: body_part_snapshot.material.base_color,
             perceptual_roughness: body_part_snapshot.material.roughness,
@@ -273,4 +293,5 @@ impl EditHistoryManager {
     fn is_z_pressed(keys: &Res<ButtonInput<KeyCode>>) -> bool {
         keys.just_pressed(KeyCode::KeyZ)
     }
+
 }

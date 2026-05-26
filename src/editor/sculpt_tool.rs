@@ -99,9 +99,65 @@ pub struct BodyContext<'w, 's>{
     all_parts: Query<'w, 's, Entity, With<BodyPart>>
 }
 
+#[derive(Resource, Default)]
+pub struct PendingResize {
+    pub entity: Option<Entity>,
+    pub radius: Option<f32>,
+    pub half_length: Option<f32>
+}
+
 pub struct SculptTool;
 
 impl SculptTool {
+    pub fn handle_resize( 
+        part_mesh_query: Query<&Mesh3d>,
+        mut pending_resize: ResMut<PendingResize>,
+        mut body_part_query: Query<&mut BodyPart>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut history: ResMut<EditHistory>
+    ) {
+        let Some(entity) = pending_resize.entity else {return;}; 
+        let Ok(mesh3d) = part_mesh_query.get(entity) else {return;};
+
+        let Ok(mut body_part) = body_part_query.get_mut(entity) else {return;};
+        let old_part_type = body_part.part_type.clone();
+
+        match &mut body_part.part_type {
+            PartType::Sphere { radius } => {
+                if let Some(pending_radius) = pending_resize.radius {
+                    *radius = pending_radius;
+                }
+            },
+            PartType::Capsule { radius, half_length } => {
+                if let Some(pending_radius) = pending_resize.radius {
+                    *radius = pending_radius;
+                }
+                
+                if let Some(pending_half_resize) = pending_resize.half_length {
+                    *half_length = pending_half_resize;
+                }
+            }
+        }
+
+        let new_part_type = body_part.part_type.clone();
+        let Some(mesh) = meshes.get_mut(&mesh3d.0) else {return;};
+        
+        let new_mesh = body_part.part_type.build_mesh(); 
+        
+        *mesh = new_mesh;
+        *pending_resize = PendingResize::default();
+        
+        let part_type_changed = old_part_type != new_part_type;
+        if !part_type_changed {return;};
+
+        history.undo_stacks.push(Action::ResizePartType { 
+            entity, 
+            old: old_part_type, 
+            new: new_part_type 
+        });
+        history.redo_stacks.clear();
+    }
+
     pub fn handle_add_body_part(
         mode: Res<SculptMode>,
         added_body_part_type: Res<BodyPartType>,

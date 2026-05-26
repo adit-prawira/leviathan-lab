@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::editor::gizmos::{GizmosManager, GizmosMode};
-use crate::editor::sculpt_tool::{BodyPartId, BodyPartType, SculptMode, SculptTool};
+use crate::editor::sculpt_tool::{BodyPartId, BodyPartType, PendingResize, SculptMode, SculptTool};
 use crate::editor::selector::{Selection, Selector};
 use crate::editor::symmetry::{PendingSymmetricChanges, Symmetry, SymmetryMode};
 
@@ -15,6 +15,7 @@ impl Plugin for EditorPlugin {
             .insert_resource(Selection::default())
             .insert_resource(SymmetryMode::default())
             .insert_resource(PendingSymmetricChanges::default())
+            .insert_resource(PendingResize::default())
             .insert_resource(GizmosMode::default())
             .add_systems(Update, (
                 Selector::handle_deselect,
@@ -22,6 +23,7 @@ impl Plugin for EditorPlugin {
                 SculptTool::handle_button_input, 
                 SculptTool::handle_add_body_part,
                 SculptTool::handle_delete_body_part,
+                SculptTool::handle_resize,
                 (
                     // changes must run collected before
                     // changes can be applied
