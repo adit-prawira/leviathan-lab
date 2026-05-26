@@ -1,12 +1,21 @@
 use bevy::prelude::*;
 
-#[derive(Clone, Debug, Component)]
+#[derive(Clone, Debug, Component, PartialEq)]
 pub enum PartType {
     Sphere { radius: f32 },
     Capsule { radius: f32, half_length: f32 },
 }
 
-#[derive(Clone, Debug, Component)]
+impl PartType {
+    pub fn build_mesh(&self) -> Mesh{
+        match self {
+            Self::Sphere { radius } => Sphere::new(*radius).mesh().build(),
+            Self::Capsule { radius, half_length } => Capsule3d{radius: *radius, half_length: *half_length}.mesh().build()
+        }
+    }
+}
+
+#[derive(Clone, Debug, Component, PartialEq)]
 pub struct BodyPart {
     pub id: u32,
     pub name: String,

@@ -1,7 +1,6 @@
 use crate::model::body_material::BodyMaterial;
 use crate::history::edit_history::PreviousBodyMaterial;
 use crate::model::body_hierarchy::BodyHierarchy;
-use crate::model::body_part::PartType;
 use crate::model::material::MaterialData;
 use crate::model::monster::Monster;
 use crate::editor::selector::{OriginalMaterial, Selector};
@@ -19,18 +18,7 @@ impl Spawner {
         let monster: Monster = Monster::default_hatchling();
         let mut entity_map: HashMap<u32, Entity> = HashMap::new();
         for part in &monster.parts {
-            let mesh: Mesh = match &part.part_type {
-                PartType::Sphere { radius } => Sphere::new(*radius).mesh().build(),
-                PartType::Capsule {
-                    radius,
-                    half_length,
-                } => Capsule3d {
-                    radius: *radius,
-                    half_length: *half_length,
-                }
-                .mesh()
-                .build(),
-            };
+            let mesh: Mesh = part.part_type.build_mesh(); 
 
             let monster_material: &MaterialData = &monster.materials[part.material_id as usize];
             let material_handle = materials.add(StandardMaterial {
