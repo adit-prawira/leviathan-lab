@@ -280,15 +280,16 @@ impl PropertiesPanel {
             }
         );
         
-        if let Some(dragged_entity) = payload {
-           Self::assign_to_root(&dragged_entity, children_of, transform_ctx, commands, history); 
-        }
-
         let hierarchy_reference = HierarchyReference{
             children_map: &children_map,
             body_parts,
             children_of 
         };
+
+        if let Some(dragged_entity) = payload {
+           Self::assign_to_root(&dragged_entity, &hierarchy_reference, transform_ctx, commands, history); 
+        }
+
 
         for entity in &roots {
             let entity_reference = EntityReference { selected_entity, entity };
@@ -336,13 +337,16 @@ impl PropertiesPanel {
 
     fn assign_to_root(
         dragged_entity: &Entity,
-        children_of: &Query<&ChildOf>,
+        hierarchy_reference: &HierarchyReference,
         transform_ctx: &mut TransformContext, 
         commands: &mut Commands,
         history: &mut EditHistory
     ) {
         let dragged = *dragged_entity;
-        if let Some(old_parent) = children_of.get(dragged).ok().map(|children| children.parent()) {
+        let Ok((_, dragged_body_part)) = hierarchy_reference.body_parts.get(dragged) else {return;};
+
+        if let Some(old_parent) = hierarchy_reference.children_of.get(dragged).ok().map(|children| children.parent()) {
+            let old_parent_id = hierarchy_reference.body_parts.get(old_parent).ok().map(|(_, body_part)| body_part.id);
             let old_transform = transform_ctx.transforms.get(dragged).copied().unwrap_or_default();
             let old_world = transform_ctx.global_transforms.get(dragged).copied().unwrap_or_default();
             let local_transform = Mat4::from(old_world.affine());
@@ -352,11 +356,14 @@ impl PropertiesPanel {
             }
             commands.entity(dragged).remove::<ChildOf>();
             history.undo_stacks.push(Action::AssignParentEntity { 
-                entity: dragged, 
-                old_parent: Some(old_parent), 
+                entity: dragged,
+                entity_id: dragged_body_part.id,
+                old_parent: Some(old_parent),
+                old_parent_id, 
                 old_transform, 
                 new_parent: None, 
-                new_transform 
+                new_transform,
+                new_parent_id: None,
             });
             history.redo_stacks.clear();
         } 
@@ -374,15 +381,20 @@ impl PropertiesPanel {
         let dragged = *dragged_entity;
         let should_change_hierarychy = dragged != *entity
             && !Self::is_descendant(*entity, dragged, hierarchy_reference.children_of);
+        let Ok((_, dragged_body_part)) = hierarchy_reference.body_parts.get(dragged) else {return;};
+        let Ok((_, target_body_part)) = hierarchy_reference.body_parts.get(*entity) else {return;};
 
-        if should_change_hierarychy {
+        if should_change_hierarychy { 
             let old_parent = hierarchy_reference.children_of.get(dragged).ok().map(|child_of| child_of.parent());
-            let new_parent = Some(*entity);
-
+            let old_parent_id = old_parent
+                .and_then(|parent| hierarchy_reference.body_parts.get(parent).ok())
+                .map(|(_, body_part)| body_part.id);
             let old_world = transform_ctx.global_transforms.get(dragged).copied().unwrap_or_default();
-            let parent_world = transform_ctx.global_transforms.get(*entity).copied().unwrap_or_default();
             let old_transform = transform_ctx.transforms.get(dragged).copied().unwrap_or_default();
+            
+            let parent_world = transform_ctx.global_transforms.get(*entity).copied().unwrap_or_default();
             let local_parent_transform = Mat4::from(parent_world.affine().inverse() * old_world.affine());
+            let new_parent = Some(*entity);
             let new_transform = Transform::from_matrix(local_parent_transform);
 
             if let Ok(mut transform) = transform_ctx.transforms.get_mut(dragged) {
@@ -392,11 +404,14 @@ impl PropertiesPanel {
             commands.entity(*entity).add_child(dragged);
 
             history.undo_stacks.push(Action::AssignParentEntity { 
-                entity: dragged, 
-                old_parent, 
+                entity: dragged,
+                entity_id: dragged_body_part.id,
+                old_parent,
+                old_parent_id,
                 old_transform, 
                 new_parent, 
-                new_transform 
+                new_transform,
+                new_parent_id: Some(target_body_part.id),
             });
             history.redo_stacks.clear();
         };
