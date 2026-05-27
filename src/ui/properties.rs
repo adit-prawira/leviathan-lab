@@ -23,14 +23,14 @@ pub struct EditorContext<'w> {
     mode: ResMut<'w, GizmosMode>,
     symmetry_mode: ResMut<'w, SymmetryMode>,
     history: ResMut<'w, EditHistory>,
-    pending_resize: ResMut<'w, PendingResize>
+    pending_resize: ResMut<'w, PendingResize>,
 }
 
 #[derive(SystemParam)]
 pub struct SelectionContext<'w, 's>{
     selection: Res<'w, Selection>,
-    body_parts: Query<'w, 's, (Entity, &'static BodyPart)>,
-    children_of: Query<'w, 's, &'static ChildOf>
+    body_part_query: Query<'w, 's, (Entity, &'static BodyPart)>,
+    children_of_query: Query<'w, 's, &'static ChildOf>
 }
 
 /**
@@ -44,19 +44,19 @@ impl PropertiesPanel {
     pub fn show(
         selection_ctx: SelectionContext,
         mut contexts: EguiContexts,
-        mut body_materials: Query<&mut BodyMaterial>,
+        mut body_material_query: Query<&mut BodyMaterial>,
         mut commands: Commands,
         mut transform_ctx: TransformContext,
         mut editor_ctx: EditorContext
     ) {
         let Some(entity) = selection_ctx.selection.entity else { return; };
-        let Ok((_, body_part)) = selection_ctx.body_parts.get(entity) else { return; }; 
-        let Ok(mut body_material) = body_materials.get_mut(entity) else { return; };
+        let Ok((_, body_part)) = selection_ctx.body_part_query.get(entity) else { return; }; 
+        let Ok(mut body_material) = body_material_query.get_mut(entity) else { return; };
 
         // render panel on the right-hand side of the screen
         egui::SidePanel::right("properties").min_width(MIN_SIDE_PANEL_WIDTH)
             .show(contexts.ctx_mut().expect("egui context to be available"),|ui| {
-                Self::render_properties_section(ui, entity, body_part, &mut transform_ctx.transforms);
+                Self::render_properties_section(ui, entity, body_part, &mut transform_ctx.transform_query);
 
                 Self::render_shape_section(ui, entity, body_part, &mut editor_ctx.pending_resize); 
 
@@ -67,13 +67,13 @@ impl PropertiesPanel {
                 
                 Self::render_mode_section(ui, &mut local_mode, &mut editor_ctx.symmetry_mode);
                 
-                if local_mode != current_mode {*editor_ctx.mode = local_mode;}; 
+                if local_mode != current_mode {*editor_ctx.mode = local_mode;};  
 
                 Self::render_hierarchy_section(
                     ui, 
                     &entity, 
-                    &selection_ctx.body_parts, 
-                    &selection_ctx.children_of,
+                    &selection_ctx.body_part_query, 
+                    &selection_ctx.children_of_query,
                     &mut transform_ctx,
                     &mut commands, 
                     &mut editor_ctx.history 
@@ -90,6 +90,16 @@ impl PropertiesPanel {
         egui::Grid::new("PropertiesSection").spacing([8.0, 8.0]).show(ui, |ui| {
             ui.strong("Body Part");
             ui.label(&body_part.name);
+            ui.end_row();
+
+            ui.strong("Shape");
+            ui.horizontal(|ui| {
+                ui.disable();
+                let mut sphere_value = matches!(body_part.part_type, PartType::Sphere { .. });
+                let mut capsule_value = matches!(body_part.part_type, PartType::Capsule { .. });
+                ui.selectable_value(&mut sphere_value, true, "⬤ Sphere");
+                ui.selectable_value(&mut capsule_value, true,  "💊 Capsule"); 
+            });
             ui.end_row();
 
             ui.strong("Position");

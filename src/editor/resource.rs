@@ -54,6 +54,6 @@ impl IdGenerator for BodyPartId {
 
 #[derive(SystemParam)]
 pub struct TransformContext<'w, 's> {
-    pub global_transforms: Query<'w, 's, &'static GlobalTransform>,
-    pub transforms: Query<'w, 's, &'static mut Transform>
+    pub global_transform_query: Query<'w, 's, &'static GlobalTransform>,
+    pub transform_query: Query<'w, 's, &'static mut Transform>
 }
