@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
 use crate::editor::gizmos::{GizmosManager, GizmosMode};
-use crate::editor::sculpt_tool::{BodyPartId, BodyPartType, PendingResize, SculptMode, SculptTool};
+use crate::editor::resource::{BodyPartId, SculptBodyPartType, SculptMode};
+use crate::editor::sculpt_tool::{PendingResize,SculptTool};
 use crate::editor::selector::{Selection, Selector};
 use crate::editor::symmetry::{PendingSymmetricChanges, Symmetry, SymmetryMode};
 
@@ -10,7 +11,7 @@ pub struct EditorPlugin;
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SculptMode::default())
-            .insert_resource(BodyPartType::default())
+            .insert_resource(SculptBodyPartType::default())
             .insert_resource(BodyPartId::default())
             .insert_resource(Selection::default())
             .insert_resource(SymmetryMode::default())
