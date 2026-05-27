@@ -46,11 +46,11 @@ impl BodyHierarchy {
 
         if let Some(old_parent) = hierarchy_reference.children_of.get(dragged).ok().map(|children| children.parent()) {
             let old_parent_id = hierarchy_reference.body_parts.get(old_parent).ok().map(|(_, body_part)| body_part.id); 
-            let old_transform = transform_ctx.transforms.get(dragged).copied().unwrap_or_default();
-            let old_world = transform_ctx.global_transforms.get(dragged).copied().unwrap_or_default();
-            let local_transform = Mat4::from(old_world.affine());
-            let new_transform = Transform::from_matrix(local_transform);
-            if let Ok(mut transform) = transform_ctx.transforms.get_mut(dragged) {
+            let old_transform = transform_ctx.transform_query.get(dragged).copied().unwrap_or_default();
+            let old_world = transform_ctx.global_transform_query.get(dragged).copied().unwrap_or_default();
+            let old_world_matrix = Mat4::from(old_world.affine());
+            let new_transform = Transform::from_matrix(old_world_matrix);
+            if let Ok(mut transform) = transform_ctx.transform_query.get_mut(dragged) {
                 *transform = new_transform;
             }
             commands.entity(dragged).remove::<ChildOf>();
@@ -88,15 +88,15 @@ impl BodyHierarchy {
             let old_parent_id = old_parent
                 .and_then(|parent| hierarchy_reference.body_parts.get(parent).ok())
                 .map(|(_, body_part)| body_part.id);
-            let old_world = transform_ctx.global_transforms.get(dragged).copied().unwrap_or_default();
-            let old_transform = transform_ctx.transforms.get(dragged).copied().unwrap_or_default();
+            let old_world = transform_ctx.global_transform_query.get(dragged).copied().unwrap_or_default();
+            let old_transform = transform_ctx.transform_query.get(dragged).copied().unwrap_or_default();
             
-            let parent_world = transform_ctx.global_transforms.get(*entity).copied().unwrap_or_default();
-            let local_parent_transform = Mat4::from(parent_world.affine().inverse() * old_world.affine());
+            let parent_world = transform_ctx.global_transform_query.get(*entity).copied().unwrap_or_default();
+            let local_parent_matrix = Mat4::from(parent_world.affine().inverse() * old_world.affine());
             let new_parent = Some(*entity);
-            let new_transform = Transform::from_matrix(local_parent_transform);
+            let new_transform = Transform::from_matrix(local_parent_matrix);
 
-            if let Ok(mut transform) = transform_ctx.transforms.get_mut(dragged) {
+            if let Ok(mut transform) = transform_ctx.transform_query.get_mut(dragged) {
                 *transform = new_transform;
             }
 

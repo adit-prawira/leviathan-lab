@@ -1,7 +1,7 @@
 use crate::history::edit_history::{Action, EditHistory, PreviousTransform, MAX_HISTORY_COUNT};
 use crate::scene::camera::OrbitCamera;
 use crate::editor::selector::Selection;
-use bevy::prelude::*;
+use bevy::{prelude::*};
 use core::fmt;
 use std::f32::consts::FRAC_PI_2;
 
@@ -43,11 +43,11 @@ impl GizmosManager {
     pub fn handle_draw(
         selection: Res<Selection>,
         mode: Res<GizmosMode>,
-        transforms: Query<&GlobalTransform>,
+        transform_query: Query<&GlobalTransform>,
         mut gizmos: Gizmos,
     ) {
         let Some(entity) = selection.entity else { return; };
-        let Ok(global_transform) = transforms.get(entity) else { return; };
+        let Ok(global_transform) = transform_query.get(entity) else { return; };
 
         let position: Vec3 = global_transform.translation();
 
@@ -71,11 +71,11 @@ impl GizmosManager {
     }
 
     pub fn handle_transform_change(
-        mut handles: Query<(&GizmosHandle, &mut Transform)>,
-        targets: Query<&GlobalTransform, Without<GizmosHandle>>
+        mut gizmos_handle_query: Query<(&GizmosHandle, &mut Transform)>,
+        target_query: Query<&GlobalTransform, Without<GizmosHandle>>
     ) {
-        for (handle, mut handle_tranform) in &mut handles {
-            let Ok(target_global_transform) = targets.get(handle.target) else {continue;};
+        for (handle, mut handle_tranform) in &mut gizmos_handle_query {
+            let Ok(target_global_transform) = target_query.get(handle.target) else {continue;};
             handle_tranform.translation = target_global_transform.translation() + handle.axis * Self::LENGTH;
         }
     }
@@ -83,8 +83,8 @@ impl GizmosManager {
     pub fn handle_sync(
         selection: Res<Selection>,
         mode: Res<GizmosMode>,
-        handles: Query<Entity, With<GizmosHandle>>,
-        transforms: Query<&GlobalTransform>,
+        gizmos_handle_query: Query<Entity, With<GizmosHandle>>,
+        transform_query: Query<&GlobalTransform>,
         mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<StandardMaterial>>,
@@ -92,12 +92,12 @@ impl GizmosManager {
         if !selection.is_changed() && !mode.is_changed() { return; }
 
         // Despawn old handles
-        for entity in &handles {
+        for entity in &gizmos_handle_query {
             commands.entity(entity).despawn();
         }
 
         let Some(target_entity) = selection.entity else { return; };
-        let Ok(global_transform) = transforms.get(target_entity) else { return; };
+        let Ok(global_transform) = transform_query.get(target_entity) else { return; };
         let position: Vec3 = global_transform.translation();
         let axes: [(Vec3, Color); 3] = [
             (Vec3::X, Color::srgb(1.0, 0.2, 0.2)),
@@ -128,13 +128,13 @@ impl GizmosManager {
 
     pub fn handle_drag(
         drag: On<Pointer<Drag>>,
-        handles: Query<&GizmosHandle>,
+        gizmos_handle_query: Query<&GizmosHandle>,
         orbit: Res<OrbitCamera>,
         mode: Res<GizmosMode>,
-        mut transforms: Query<&mut Transform>,
+        mut transform_query: Query<&mut Transform>,
     ) {
-        let Ok(handle) = handles.get(drag.entity) else { return; };
-        let Ok(mut transform) = transforms.get_mut(handle.target) else { return; };
+        let Ok(handle) = gizmos_handle_query.get(drag.entity) else { return; };
+        let Ok(mut transform) = transform_query.get_mut(handle.target) else { return; };
         let scale: f32 = orbit.distance * 0.01;
         let delta = drag.delta;
 
@@ -165,12 +165,12 @@ impl GizmosManager {
      * */
     pub fn on_drag_start(
         drag: On<Pointer<DragStart>>,
-        handles: Query<&GizmosHandle>, 
-        transforms: Query<&Transform>, 
+        gizmos_handle_query: Query<&GizmosHandle>, 
+        transform_query: Query<&Transform>, 
         mut commands: Commands
     ) {
-        let Ok(handle) = handles.get(drag.entity) else {return;};
-        let Ok(current_transform) = transforms.get(handle.target) else {return;};
+        let Ok(handle) = gizmos_handle_query.get(drag.entity) else {return;};
+        let Ok(current_transform) = transform_query.get(handle.target) else {return;};
         commands.entity(handle.target).insert(PreviousTransform(*current_transform));
     }
 
@@ -180,14 +180,14 @@ impl GizmosManager {
      * */
     pub fn on_drag_end(
         drag: On<Pointer<DragEnd>>,
-        handles: Query<&GizmosHandle>,
-        transforms: Query<&Transform>,
-        previous_transforms: Query<&PreviousTransform>,
+        gizmos_handle_query: Query<&GizmosHandle>,
+        transform_query: Query<&Transform>,
+        previous_transform_query: Query<&PreviousTransform>,
         mut history: ResMut<EditHistory>, 
     ) {
-        let Ok(handle) = handles.get(drag.entity) else {return;};
-        let Ok(new_transform) = transforms.get(handle.target) else {return;};
-        let Ok(previous_transform) = previous_transforms.get(handle.target) else {return;};
+        let Ok(handle) = gizmos_handle_query.get(drag.entity) else {return;};
+        let Ok(new_transform) = transform_query.get(handle.target) else {return;};
+        let Ok(previous_transform) = previous_transform_query.get(handle.target) else {return;};
 
         if previous_transform.0 == *new_transform {return;};
         history.undo_stacks.push(Action::TransformEdit { 

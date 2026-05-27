@@ -27,16 +27,17 @@ pub struct ControlContext<'w> {
 
 #[derive(SystemParam)]
 pub struct SceneContext<'w, 's> {
-    windows: Query<'w, 's, &'static Window>,
-    cameras: Query<'w, 's, (&'static Camera, &'static GlobalTransform)>
+    window_query: Query<'w, 's, &'static Window>,
+    camera_query: Query<'w, 's, (&'static Camera, &'static GlobalTransform)>,
+    global_transform_query: Query<'w, 's, &'static GlobalTransform>
 }
 
 #[derive(SystemParam)]
 pub struct BodyContext<'w, 's>{
-    parts: Query<'w, 's, &'static BodyPart>,
-    materials: Query<'w,'s, &'static BodyMaterial>,
-    transforms: Query<'w, 's, &'static Transform>,
-    all_parts: Query<'w, 's, Entity, With<BodyPart>>
+    body_part_query: Query<'w, 's, &'static BodyPart>,
+    body_material_query: Query<'w,'s, &'static BodyMaterial>,
+    transform_query: Query<'w, 's, &'static Transform>,
+    all_body_part_query: Query<'w, 's, Entity, With<BodyPart>>
 }
 
 #[derive(Resource, Default)]
@@ -113,10 +114,10 @@ impl SculptTool {
             .expect("egui context to be available").wants_pointer_input();  
         if is_mouse_pointer_touching_properties_panel {return;};
         
-        let Ok(window) = scene_ctx.windows.single() else {return;};
+        let Ok(window) = scene_ctx.window_query.single() else {return;};
         let Some(cursor_position) = window.cursor_position() else {return;};
         
-        let Ok((camera, camera_global_transform)) = scene_ctx.cameras.single() else {return;};
+        let Ok((camera, camera_global_transform)) = scene_ctx.camera_query.single() else {return;};
         let Ok(ray_3d) = camera.viewport_to_world(camera_global_transform, cursor_position) else {return;};
         
         let Some(distance) = ray_3d.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) else {return;};
@@ -158,8 +159,14 @@ impl SculptTool {
         .observe(Selector::on_press)
         .id();
 
-        let Some(parent_entity) = control_ctx.selection.entity else {return;};
-        spawn_ctx.commands.entity(parent_entity).add_child(child_entity);
+        if let Some(parent_entity) = control_ctx.selection.entity {
+            if let Ok(parent_world) = scene_ctx.global_transform_query.get(parent_entity) {
+                let local_spawn_matrix = Mat4::from(parent_world.affine().inverse()) * Mat4::from_translation(spawn_position);
+                let local_spawn_transform = Transform::from_matrix(local_spawn_matrix);
+                spawn_ctx.commands.entity(child_entity).insert(local_spawn_transform);
+            };
+            spawn_ctx.commands.entity(parent_entity).add_child(child_entity);
+        };
     }
     
     pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<SculptMode>) {
@@ -170,8 +177,8 @@ impl SculptTool {
     pub fn handle_delete_body_part(
         keys: Res<ButtonInput<KeyCode>>, 
         body_ctx: BodyContext, 
-        parents: Query<&ChildOf>,
-        children: Query<&Children>, 
+        parent_query: Query<&ChildOf>,
+        children_query: Query<&Children>, 
         mut selection: ResMut<Selection>,
         mut history: ResMut<EditHistory>,
         mut commands: Commands
@@ -183,10 +190,10 @@ impl SculptTool {
         let Some(entity) = selection.entity else {return;};
         
         // ensure at least 1 part exist 
-        if body_ctx.all_parts.iter().len() <= 1 {return;}
+        if body_ctx.all_body_part_query.iter().len() <= 1 {return;}
 
-        let parent = parents.get(entity).ok().map(|p| p.get()); 
-        let snapshot = Self::capture_snapshot(entity, parent, &children, &body_ctx);
+        let parent = parent_query.get(entity).ok().map(|p| p.get()); 
+        let snapshot = Self::capture_snapshot(entity, parent, &children_query, &body_ctx);
         history.undo_stacks.push(Action::DeletePart { snapshot });
         if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
         history.redo_stacks.clear();
@@ -200,11 +207,11 @@ impl SculptTool {
         children: &Query<&Children>,
         body_ctx: &BodyContext,
     ) -> BodyPartSnapshot {
-        let part = body_ctx.parts.get(entity).unwrap().clone();
-        let material = body_ctx.materials.get(entity).unwrap().clone();
-        let transform = *body_ctx.transforms.get(entity).unwrap();
+        let part = body_ctx.body_part_query.get(entity).unwrap().clone();
+        let material = body_ctx.body_material_query.get(entity).unwrap().clone();
+        let transform = *body_ctx.transform_query.get(entity).unwrap();
         let children = if let Ok(kids) = children.get(entity) {
-            kids.iter().filter(|&k| body_ctx.parts.contains(k))
+            kids.iter().filter(|&k| body_ctx.body_part_query.contains(k))
                 .map(|k| Self::capture_snapshot(k, Some(entity), children, body_ctx))
                 .collect()
         }else {

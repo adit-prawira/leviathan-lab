@@ -25,10 +25,10 @@ pub struct Symmetry;
 + */
 impl Symmetry {
     pub fn handle_change(
-        changes: Query<(Entity, &BodyMaterial, &GlobalTransform), Changed<BodyMaterial>>,
+        changed_body_material_query: Query<(Entity, &BodyMaterial, &GlobalTransform), Changed<BodyMaterial>>,
         mut pending_symmetric_changes: ResMut<PendingSymmetricChanges>,
     ) {
-        pending_symmetric_changes.material_snapshots = changes
+        pending_symmetric_changes.material_snapshots = changed_body_material_query 
             .iter()
             .map(|(entity, body_material, global_transform)| {
                 (
@@ -43,8 +43,8 @@ impl Symmetry {
     pub fn handle_apply(
         mode: Res<SymmetryMode>,
         pending_symmetric_changes: Res<PendingSymmetricChanges>,
-        all_body_materials: Query<(Entity, &GlobalTransform)>,
-        mut body_materials: Query<&mut BodyMaterial>,
+        all_body_entity_query: Query<(Entity, &GlobalTransform)>,
+        mut body_material_query: Query<&mut BodyMaterial>,
     ) {
         if !mode.enabled { return; }
 
@@ -53,7 +53,7 @@ impl Symmetry {
         {
             if current_entity_position.x.abs() < MIRROR_THRESHOLD { continue; }
 
-            let mirrored_entity = all_body_materials
+            let mirrored_entity = all_body_entity_query 
                 .iter()
                 .filter(|(e, _)| *e != *entity) // exclude the current entity
                 .find(|(_, other_entity_global_transform)| {
@@ -67,7 +67,7 @@ impl Symmetry {
                 .map(|(e, _)| e);
 
             let Some(mirrored_entity) = mirrored_entity else { continue; };
-            let Ok(mut mirrored_material) = body_materials.get_mut(mirrored_entity) else { continue; };
+            let Ok(mut mirrored_material) = body_material_query.get_mut(mirrored_entity) else { continue; };
             *mirrored_material = body_material.clone();
         }
     }

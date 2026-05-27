@@ -69,9 +69,9 @@ pub struct EditHistory {
 
 #[derive(SystemParam)]
 pub struct BodyContext<'w, 's> {
-    transforms: Query<'w, 's, &'static mut Transform>,
-    body_materials: Query<'w, 's, &'static mut BodyMaterial>,
-    body_parts: Query<'w, 's, &'static mut BodyPart>,
+    transform_query: Query<'w, 's, &'static mut Transform>,
+    body_material_query: Query<'w, 's, &'static mut BodyMaterial>,
+    body_part_query: Query<'w, 's, &'static mut BodyPart>,
     part_mesh_query: Query<'w, 's, &'static Mesh3d>,
     meshes: ResMut<'w, Assets<Mesh>>,
     hierarychy: ResMut<'w, BodyHierarchy>
@@ -86,7 +86,7 @@ pub struct EditHistoryManager;
  * */
 impl EditHistoryManager {
     pub fn handle_record(
-        changes: Query<(Entity, &BodyMaterial, &PreviousBodyMaterial), Changed<BodyMaterial>>,
+        changed_body_material_query: Query<(Entity, &BodyMaterial, &PreviousBodyMaterial), Changed<BodyMaterial>>,
         mut history: ResMut<EditHistory>,
         mut commands: Commands
     ) {
@@ -95,7 +95,7 @@ impl EditHistoryManager {
         
         // Otherwise, start putting changes to history undo stacks 
         // and clear redo action stacks 
-        for (entity, current_body_material, previous_body_material) in &changes {
+        for (entity, current_body_material, previous_body_material) in &changed_body_material_query {
             let is_changed = *current_body_material != previous_body_material.0;
             if !is_changed {continue;};
             history.undo_stacks.push(Action::MaterialEdit{
@@ -126,7 +126,7 @@ impl EditHistoryManager {
 
         match action {
             Action::MaterialEdit { entity, ref old, .. } => {
-                let Ok(mut body_material) = body_ctx.body_materials.get_mut(entity) else {return;};
+                let Ok(mut body_material) = body_ctx.body_material_query.get_mut(entity) else {return;};
                 history.restoring = true;
         
                 // applying old material to current material as a whole
@@ -139,7 +139,7 @@ impl EditHistoryManager {
                 history.restoring = false;
             },
             Action::TransformEdit { entity, old, .. } => {
-                let Ok(mut transform) = body_ctx.transforms.get_mut(entity) else {return;};
+                let Ok(mut transform) = body_ctx.transform_query.get_mut(entity) else {return;};
                 history.restoring = true;
                 *transform = old;
                 history.restoring = false;
@@ -153,7 +153,7 @@ impl EditHistoryManager {
             },
             Action::ResizePartType { entity, ref old, .. } => {
                 let Ok(mesh3d) = body_ctx.part_mesh_query.get(entity) else {return;};
-                let Ok(mut body_part) = body_ctx.body_parts.get_mut(entity) else {return;};
+                let Ok(mut body_part) = body_ctx.body_part_query.get_mut(entity) else {return;};
                 let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
 
                 history.restoring = true;
@@ -163,7 +163,7 @@ impl EditHistoryManager {
             },
             Action::AssignParentEntity { entity_id, old_parent_id, old_transform, .. } => {
                 let Some(&entity) = body_ctx.hierarychy.entities.get(&entity_id) else {return;};
-                if let Ok(mut transform) = body_ctx.transforms.get_mut(entity) {
+                if let Ok(mut transform) = body_ctx.transform_query.get_mut(entity) {
                     *transform = old_transform;
                 }
                 match old_parent_id {
@@ -199,7 +199,7 @@ impl EditHistoryManager {
      
         match action {
             Action::MaterialEdit { entity, ref new, .. } => { 
-                let Ok(mut body_material) = body_ctx.body_materials.get_mut(entity) else {return;};
+                let Ok(mut body_material) = body_ctx.body_material_query.get_mut(entity) else {return;};
                 history.restoring = true;
                 *body_material = new.clone();
                 commands.entity(entity)
@@ -207,7 +207,7 @@ impl EditHistoryManager {
                 history.restoring = false;
             },
             Action::TransformEdit { entity, new, .. } => {
-                let Ok(mut transform) = body_ctx.transforms.get_mut(entity) else {return;};
+                let Ok(mut transform) = body_ctx.transform_query.get_mut(entity) else {return;};
                 history.restoring = true;
                 *transform = new;
                 history.restoring = false;
@@ -221,7 +221,7 @@ impl EditHistoryManager {
             },
             Action::ResizePartType { entity, ref new, .. } => {
                 let Ok(mesh3d) = body_ctx.part_mesh_query.get(entity) else {return;};
-                let Ok(mut body_part) = body_ctx.body_parts.get_mut(entity) else {return;};
+                let Ok(mut body_part) = body_ctx.body_part_query.get_mut(entity) else {return;};
                 let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
                 history.restoring = true;
                 body_part.part_type = new.clone();
@@ -230,7 +230,7 @@ impl EditHistoryManager {
             },
             Action::AssignParentEntity { entity_id, new_parent_id, new_transform, .. } => {
                 let Some(&entity) = body_ctx.hierarychy.entities.get(&entity_id) else {return;};
-                if let Ok(mut transform) = body_ctx.transforms.get_mut(entity) {
+                if let Ok(mut transform) = body_ctx.transform_query.get_mut(entity) {
                     *transform = new_transform;
                 }
 

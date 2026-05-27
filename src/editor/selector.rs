@@ -1,4 +1,4 @@
-use bevy::picking::pointer::PointerInteraction;
+use bevy::picking::pointer::{PointerInteraction};
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use crate::model::body_part::BodyPart;
@@ -23,9 +23,9 @@ impl Selector {
     }
 
     pub fn handle_deselect( 
-        pointers: Query<&PointerInteraction>,
-        body_parts: Query<(), With<BodyPart>>,
-        gizmos_handles: Query<(), With<GizmosHandle>>,
+        pointer_interaction_query: Query<&PointerInteraction>,
+        body_part_query: Query<(), With<BodyPart>>,
+        gizmos_handle_query: Query<(), With<GizmosHandle>>,
         buttons: Res<ButtonInput<MouseButton>>,
         mode: Res<SculptMode>,
         mut selection: ResMut<Selection>,
@@ -36,10 +36,10 @@ impl Selector {
         if egui_contexts.ctx_mut().expect("egui context").wants_pointer_input() { return; }
 
         // if pointer clicking body or gizmos handle entity
-        let hit_any_body_parts: bool = pointers
+        let hit_any_body_parts: bool = pointer_interaction_query 
             .iter()
             .filter_map(|pointer| pointer.get_nearest_hit())
-            .any(|(entity, _)| body_parts.contains(*entity) || gizmos_handles.contains(*entity));
+            .any(|(entity, _)| body_part_query.contains(*entity) || gizmos_handle_query.contains(*entity));
 
         if !hit_any_body_parts { selection.entity = None; }
     }

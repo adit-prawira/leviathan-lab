@@ -46,7 +46,7 @@ impl Camera {
 
     pub fn handle_orbit(
         mut orbit: ResMut<OrbitCamera>,
-        mut query: Query<&mut Transform, With<Camera3d>>,
+        mut camera_transform_query: Query<&mut Transform, With<Camera3d>>,
         mut motion: MessageReader<MouseMotion>,
         mut scroll: MessageReader<MouseWheel>,
         buttons: Res<ButtonInput<MouseButton>>,
@@ -78,7 +78,7 @@ impl Camera {
             orbit.distance = orbit.distance.clamp(MIN_DISTANCE, MAX_DISTANCE);
         }
 
-        if let Ok(mut transform) = query.single_mut() {
+        if let Ok(mut transform) = camera_transform_query.single_mut() {
             *transform = orbit_transform(&orbit);
         }
     }
