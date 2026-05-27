@@ -47,9 +47,14 @@ pub enum Action {
     },
     AssignParentEntity {
         entity: Entity,
+        entity_id: u32,
+       
         old_parent: Option<Entity>,
+        old_parent_id: Option<u32>,
         old_transform: Transform,
+
         new_parent: Option<Entity>,
+        new_parent_id: Option<u32>,
         new_transform: Transform
     }
 }
@@ -156,13 +161,16 @@ impl EditHistoryManager {
                 *mesh = body_part.part_type.build_mesh();
                 history.restoring = false;
             },
-            Action::AssignParentEntity { entity, old_parent, old_transform, .. } => {
+            Action::AssignParentEntity { entity_id, old_parent_id, old_transform, .. } => {
+                let Some(&entity) = body_ctx.hierarychy.entities.get(&entity_id) else {return;};
                 if let Ok(mut transform) = body_ctx.transforms.get_mut(entity) {
                     *transform = old_transform;
                 }
-                match old_parent {
-                    Some(parent) => {
-                        commands.entity(parent).add_child(entity);
+                match old_parent_id {
+                    Some(parent_id) => {
+                        if let Some(&parent) = body_ctx.hierarychy.entities.get(&parent_id) {
+                            commands.entity(parent).add_child(entity);
+                        } 
                     },
                     None => {
                         commands.entity(entity).remove::<ChildOf>();
@@ -220,14 +228,17 @@ impl EditHistoryManager {
                 *mesh = body_part.part_type.build_mesh();
                 history.restoring = false;
             },
-            Action::AssignParentEntity { entity, new_parent, new_transform, .. } => {
+            Action::AssignParentEntity { entity_id, new_parent_id, new_transform, .. } => {
+                let Some(&entity) = body_ctx.hierarychy.entities.get(&entity_id) else {return;};
                 if let Ok(mut transform) = body_ctx.transforms.get_mut(entity) {
                     *transform = new_transform;
                 }
 
-                match new_parent {
-                    Some(parent) => {
-                        commands.entity(parent).add_child(entity);
+                match new_parent_id {
+                    Some(parent_id) => {
+                        if let Some(&parent) = body_ctx.hierarychy.entities.get(&parent_id) {
+                            commands.entity(parent).add_child(entity);
+                        }
                     },
                     None => {
                         commands.entity(entity).remove::<ChildOf>();
