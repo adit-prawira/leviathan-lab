@@ -1,5 +1,3 @@
-use core::fmt;
-
 use bevy::ecs::relationship::Relationship;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -8,68 +6,10 @@ use bevy_egui::EguiContexts;
 use crate::editor::selector::{OriginalMaterial, Selector};
 use crate::history::edit_history::{Action, BodyPartSnapshot, EditHistory, MAX_HISTORY_COUNT, PreviousBodyMaterial};
 use crate::model::body_material::BodyMaterial;
-use crate::model::body_part::{BodyPart, PartType};
+use crate::model::body_part::{BodyPart, BodyPartBuilder, PartType};
 
+use super::resource::{BodyPartId, INITIAL_BODY_PART_COLOR, INITIAL_METALLIC_COEFFICIENT, INITIAL_ROUGHNESS_COEFFICIENT, IdGenerator, SculptBodyPartType, SculptMode};
 use super::selector::Selection;
-
-const INITIAL_BODY_PART_COLOR: Color = Color::srgba(0.5, 0.8, 0.5, 1.0);
-const INITIAL_METALLIC_COEFFICIENT: f32 = 0.0;
-const INITIAL_ROUGHNESS_COEFFICIENT: f32 = 0.0;
-
-#[derive(Resource, Default, PartialEq)]
-pub enum SculptMode {
-    #[default]
-    Select,
-    AddBodyPart
-}
-
-impl fmt::Display for SculptMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SculptMode::AddBodyPart => write!(f, "Add Body Part"),
-            SculptMode::Select => write!(f, "Select")
-        }
-    }
-}
-
-#[derive(Resource, Default, PartialEq)]
-pub enum BodyPartType {
-    #[default]
-    Sphere, 
-    Capsule
-}
-
-impl fmt::Display for BodyPartType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BodyPartType::Capsule => write!(f, "Capsule"),
-            BodyPartType::Sphere => write!(f, "Sphere")
-        }
-    }
-}
-
-#[derive(Resource)]
-pub struct BodyPartId(pub u32);
-
-impl Default for BodyPartId {
-    // new body part id will 
-    // start with 100 
-    fn default() -> Self {
-        Self(100)
-    }
-}
-
-trait IdGenerator {
-    fn next(&mut self) -> u32;
-}
-
-impl IdGenerator for BodyPartId {
-    fn next(&mut self) -> u32 {
-        let id = self.0;
-        self.0 += 1;
-        id
-    }
-}
 
 #[derive(SystemParam)]
 pub struct SpawnContext<'w, 's>{
@@ -160,7 +100,7 @@ impl SculptTool {
 
     pub fn handle_add_body_part(
         mode: Res<SculptMode>,
-        added_body_part_type: Res<BodyPartType>,
+        added_body_part_type: Res<SculptBodyPartType>,
         control_ctx: ControlContext, 
         scene_ctx: SceneContext, 
         mut egui_contexts: EguiContexts,
@@ -182,25 +122,30 @@ impl SculptTool {
         let Some(distance) = ray_3d.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) else {return;};
         let spawn_position = ray_3d.get_point(distance);
 
-        let (mesh, body_part_type, body_part_name) = match *added_body_part_type {
-            BodyPartType::Sphere => (
-                Sphere::new(0.5).mesh().build(), 
-                PartType::Sphere { radius: 0.5 }, 
-                "Sphere"
-            ),
-            BodyPartType::Capsule => (
-                Capsule3d{radius: 0.3, half_length: 0.5}.mesh().build(), 
-                PartType::Capsule { radius: 0.3, half_length: 0.5 }, 
-                "Capsule"
-            )
+        let (mesh, body_part_type) = match *added_body_part_type {
+            SculptBodyPartType::Sphere => {
+                let part_type = PartType::Sphere { radius: 0.5 };
+                (
+                    part_type.build_mesh(), 
+                    part_type 
+                )
+            },
+            SculptBodyPartType::Capsule => {
+                let part_type = PartType::Capsule { radius: 0.3, half_length: 0.5 };
+                (part_type.build_mesh(), part_type)
+            } 
         };
         
         let body_part_id = spawn_ctx.body_part_id.next();
         let material_handle = Self::build_material_handle(&mut spawn_ctx.materials);
         let body_material = Self::build_body_material();
         let previous_body_material = PreviousBodyMaterial(body_material.clone());
-        let body_part = Self::build_body_part(body_part_id, body_part_name.to_string(), body_part_type, spawn_position);
-        
+        let body_part = BodyPartBuilder::new(body_part_id)
+            .name(body_part_type.to_string())
+            .part_type(body_part_type)
+            .position(spawn_position)
+            .build();
+ 
         let child_entity = spawn_ctx.commands.spawn((
             Mesh3d(spawn_ctx.meshes.add(mesh)),
             MeshMaterial3d(material_handle.clone()),
@@ -291,21 +236,4 @@ impl SculptTool {
             metallic: INITIAL_METALLIC_COEFFICIENT,
         }
     }
-
-    fn build_body_part(id: u32, name: String, part_type: PartType, position: Vec3) -> BodyPart {
-        BodyPart {
-            id,
-            name,
-            part_type,
-            parent_id: None,
-            children: vec![],
-            translation: position.to_array(),
-            rotation: [0.0, 0.0, 0.0, 1.0],
-            scale: [1.0, 1.0, 1.0],
-            material_id: 0,
-        }
-    }
 }
-
-
-

@@ -4,7 +4,7 @@ use bevy_egui::EguiContexts;
 use crate::model::body_part::BodyPart;
 use crate::editor::gizmos::GizmosHandle;
 
-use super::sculpt_tool::SculptMode;
+use super::resource::SculptMode;
 
 #[derive(Resource, Default)]
 pub struct Selection {

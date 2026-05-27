@@ -1,12 +1,15 @@
+use std::collections::HashMap;
+
 use crate::editor::gizmos::GizmosMode;
+use crate::editor::resource::TransformContext;
 use crate::editor::sculpt_tool::PendingResize;
-use crate::history::edit_history::{Action, EditHistory};
+use crate::history::edit_history::{EditHistory};
+use crate::model::body_hierarchy::{BodyHierarchy, EntityReference, HierarchyReference};
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::{BodyPart, PartType};
 use crate::editor::selector::Selection;
 use crate::editor::symmetry::SymmetryMode;
 use bevy::ecs::system::SystemParam;
-use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy_egui::egui::{Margin, Response, Ui};
 use bevy_egui::{EguiContexts, egui};
@@ -14,12 +17,6 @@ use bevy_egui::{EguiContexts, egui};
 pub struct PropertiesPanel;
 
 const MIN_SIDE_PANEL_WIDTH: f32 = 150.0;
-
-#[derive(SystemParam)]
-pub struct TransformContext<'w, 's> {
-    global_transforms: Query<'w, 's, &'static GlobalTransform>,
-    transforms: Query<'w, 's, &'static mut Transform>
-}
 
 #[derive(SystemParam)]
 pub struct EditorContext<'w> {
@@ -34,17 +31,6 @@ pub struct SelectionContext<'w, 's>{
     selection: Res<'w, Selection>,
     body_parts: Query<'w, 's, (Entity, &'static BodyPart)>,
     children_of: Query<'w, 's, &'static ChildOf>
-}
-
-struct HierarchyReference<'a>{
-    children_map: &'a HashMap<Entity, Vec<Entity>>,
-    body_parts: &'a Query<'a, 'a, (Entity, &'static BodyPart)>,
-    children_of: &'a Query<'a, 'a, &'static ChildOf>,
-}
-
-struct EntityReference<'a> {
-    selected_entity: &'a Entity,
-    entity: &'a Entity
 }
 
 /**
@@ -287,7 +273,7 @@ impl PropertiesPanel {
         };
 
         if let Some(dragged_entity) = payload {
-           Self::assign_to_root(&dragged_entity, &hierarchy_reference, transform_ctx, commands, history); 
+            BodyHierarchy::assign_to_root(&dragged_entity, &hierarchy_reference, transform_ctx, commands, history); 
         }
 
 
@@ -324,7 +310,7 @@ impl PropertiesPanel {
         ).response;
 
         if let Some(dragged_entity) = item_response.dnd_release_payload::<Entity>() {
-            Self::assign_to_parent(&dragged_entity, entity_reference, hierarchy_reference, transform_ctx, commands, history);
+            BodyHierarchy::assign_to_parent(&dragged_entity, entity_reference, hierarchy_reference, transform_ctx, commands, history);
         };
 
         if let Some(children) = hierarchy_reference.children_map.get(entity) {
@@ -333,100 +319,7 @@ impl PropertiesPanel {
                 Self::render_hierarchy_node(ui, depth + 1, &entity_reference, hierarchy_reference, transform_ctx, commands, history);
             } 
         }; 
-    }
-
-    fn assign_to_root(
-        dragged_entity: &Entity,
-        hierarchy_reference: &HierarchyReference,
-        transform_ctx: &mut TransformContext, 
-        commands: &mut Commands,
-        history: &mut EditHistory
-    ) {
-        let dragged = *dragged_entity;
-        let Ok((_, dragged_body_part)) = hierarchy_reference.body_parts.get(dragged) else {return;};
-
-        if let Some(old_parent) = hierarchy_reference.children_of.get(dragged).ok().map(|children| children.parent()) {
-            let old_parent_id = hierarchy_reference.body_parts.get(old_parent).ok().map(|(_, body_part)| body_part.id);
-            let old_transform = transform_ctx.transforms.get(dragged).copied().unwrap_or_default();
-            let old_world = transform_ctx.global_transforms.get(dragged).copied().unwrap_or_default();
-            let local_transform = Mat4::from(old_world.affine());
-            let new_transform = Transform::from_matrix(local_transform);
-            if let Ok(mut transform) = transform_ctx.transforms.get_mut(dragged) {
-                *transform = new_transform;
-            }
-            commands.entity(dragged).remove::<ChildOf>();
-            history.undo_stacks.push(Action::AssignParentEntity { 
-                entity: dragged,
-                entity_id: dragged_body_part.id,
-                old_parent: Some(old_parent),
-                old_parent_id, 
-                old_transform, 
-                new_parent: None, 
-                new_transform,
-                new_parent_id: None,
-            });
-            history.redo_stacks.clear();
-        } 
-    }
-
-    fn assign_to_parent(
-        dragged_entity: &Entity,
-        entity_reference: &EntityReference, 
-        hierarchy_reference: &HierarchyReference,
-        transform_ctx: &mut TransformContext,
-        commands: &mut Commands,
-        history: &mut EditHistory         
-    ) {
-        let entity = entity_reference.entity; 
-        let dragged = *dragged_entity;
-        let should_change_hierarychy = dragged != *entity
-            && !Self::is_descendant(*entity, dragged, hierarchy_reference.children_of);
-        let Ok((_, dragged_body_part)) = hierarchy_reference.body_parts.get(dragged) else {return;};
-        let Ok((_, target_body_part)) = hierarchy_reference.body_parts.get(*entity) else {return;};
-
-        if should_change_hierarychy { 
-            let old_parent = hierarchy_reference.children_of.get(dragged).ok().map(|child_of| child_of.parent());
-            let old_parent_id = old_parent
-                .and_then(|parent| hierarchy_reference.body_parts.get(parent).ok())
-                .map(|(_, body_part)| body_part.id);
-            let old_world = transform_ctx.global_transforms.get(dragged).copied().unwrap_or_default();
-            let old_transform = transform_ctx.transforms.get(dragged).copied().unwrap_or_default();
-            
-            let parent_world = transform_ctx.global_transforms.get(*entity).copied().unwrap_or_default();
-            let local_parent_transform = Mat4::from(parent_world.affine().inverse() * old_world.affine());
-            let new_parent = Some(*entity);
-            let new_transform = Transform::from_matrix(local_parent_transform);
-
-            if let Ok(mut transform) = transform_ctx.transforms.get_mut(dragged) {
-                *transform = new_transform;
-            }
-
-            commands.entity(*entity).add_child(dragged);
-
-            history.undo_stacks.push(Action::AssignParentEntity { 
-                entity: dragged,
-                entity_id: dragged_body_part.id,
-                old_parent,
-                old_parent_id,
-                old_transform, 
-                new_parent, 
-                new_transform,
-                new_parent_id: Some(target_body_part.id),
-            });
-            history.redo_stacks.clear();
-        };
-    }
-
-    fn is_descendant(candidate: Entity, of: Entity, children_of: &Query<&ChildOf>) -> bool {
-        let mut current = candidate;
-        loop {
-            match children_of.get(current) {
-                Ok(child_of) if child_of.parent() == of => return true,
-                Ok(child_of) => current = child_of.parent(),
-                Err(_) => return false
-            }
-        };
-    }
+    } 
 
     fn render_shape_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, pending: &mut PendingResize){
         ui.heading("Shape");
