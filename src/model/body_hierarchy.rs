@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::editor::resource::TransformContext;
 use crate::history::edit_history::{Action, EditHistory};
@@ -23,6 +23,20 @@ pub struct EntityReference<'a> {
 }
 
 impl BodyHierarchy {
+    pub fn unique_name(base: &str, existing_names: &HashSet<&str>) -> String {
+        if !existing_names.contains(&base) {
+            return base.to_string();
+        }
+        let mut i = 1u32;
+        loop {
+            let name = format!("{}.{:03}", base, i);
+            if !existing_names.contains(&name.as_str()) {
+                return name;
+            }
+            i += 1;
+        }
+    }
+
     pub fn is_descendant(candidate: Entity, of: Entity, children_of: &Query<&ChildOf>) -> bool {
         let mut current = candidate;
         loop {

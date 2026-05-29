@@ -6,6 +6,3 @@ edition = "2024"
 [dependencies]
 bevy = "0.18.1"
 bevy_egui = "0.39.1"
-
-[dev-dependencies]
-cargo-husky = { version = "1", default-features = false, features = ["user-hooks"] }
