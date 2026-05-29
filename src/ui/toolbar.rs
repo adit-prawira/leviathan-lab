@@ -20,8 +20,11 @@ impl Toolbar {
                     if *mode != SculptMode::AddBodyPart {return;};
 
                     ui.separator();
-                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Sphere, "⬤ Sphere");
-                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Capsule, "💊 Capsule"); 
+                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Sphere, "🟢 Sphere");
+                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Capsule, "💊 Capsule");
+                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Cone, "🔺Cone");
+                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Torus, "🍩 Torus");
+                    ui.selectable_value(&mut *added_body_part_type, SculptBodyPartType::Cylinder, "🥫 Cylinder");
                 });
         });
     }

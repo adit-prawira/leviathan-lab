@@ -26,7 +26,10 @@ impl fmt::Display for SculptMode {
 pub enum SculptBodyPartType {
     #[default]
     Sphere, 
-    Capsule
+    Capsule,
+    Cone,
+    Torus, 
+    Cylinder
 }
 
 #[derive(Resource)]

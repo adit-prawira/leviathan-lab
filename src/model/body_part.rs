@@ -3,11 +3,15 @@ use core::fmt;
 use bevy::prelude::*;
 
 pub const DEFAULT_SUBDIVISION: u32 = 2;
+pub const DEFAULT_RESOLUTION: u32 = 32;
 
 #[derive(Clone, Debug, Component, PartialEq)]
 pub enum PartType {
     Sphere { radius: f32 },
     Capsule { radius: f32, half_length: f32 },
+    Cone {radius: f32, height: f32},
+    Torus {major_radius: f32, minor_radius: f32},
+    Cylinder {radius:f32, half_height: f32}
 }
 
 impl PartType {
@@ -22,7 +26,17 @@ impl PartType {
                 .expect("subdivision to be in range of 1 - 5"),
             Self::Capsule { radius, half_length } => Capsule3d{radius: *radius, half_length: *half_length}.mesh()
                 .rings(subdivisions)
-                .build()
+                .build(), 
+            Self::Cone { radius, height} => Cone{radius: *radius, height: *height}.mesh()
+                .resolution(DEFAULT_RESOLUTION) 
+                .build(),
+            Self::Torus { major_radius, minor_radius } => Torus{major_radius: *major_radius, minor_radius: *minor_radius}.mesh()
+                .major_resolution(DEFAULT_RESOLUTION.try_into().unwrap())
+                .minor_resolution(DEFAULT_RESOLUTION.try_into().unwrap())
+                .build(),
+            Self::Cylinder { radius, half_height } => Cylinder{radius: *radius, half_height: *half_height}.mesh()
+                .resolution(DEFAULT_RESOLUTION)
+                .build(),
         }
     }
 }
@@ -31,7 +45,10 @@ impl fmt::Display for PartType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PartType::Sphere { .. } => write!(f, "Sphere"),
-            PartType::Capsule { .. } => write!(f, "Capsule")
+            PartType::Capsule { .. } => write!(f, "Capsule"),
+            PartType::Cone { .. } => write!(f, "Cone"),
+            PartType::Torus { .. } => write!(f, "Torus"),
+            PartType::Cylinder { .. } => write!(f, "Cylinder"),
         }
     }
 }

@@ -48,8 +48,12 @@ pub struct BodyContext<'w, 's>{
 pub struct PendingResize {
     pub entity: Option<Entity>,
     pub radius: Option<f32>,
+    pub major_radius: Option<f32>,
+    pub minor_radius: Option<f32>,
+    pub height: Option<f32>,
+    pub half_height: Option<f32>,
     pub half_length: Option<f32>,
-    pub subdivisions: Option<u32>
+    pub subdivisions: Option<u32>,
 }
 
 pub struct SculptTool;
@@ -78,11 +82,38 @@ impl SculptTool {
                 if let Some(pending_radius) = pending_resize.radius {
                     *radius = pending_radius;
                 }
-                
+    
                 if let Some(pending_half_resize) = pending_resize.half_length {
                     *half_length = pending_half_resize;
                 }
-            }
+            },
+            PartType::Cone { radius, height} => {
+                if let Some(pending_radius) = pending_resize.radius {
+                    *radius = pending_radius;
+                }
+
+                if let Some(pending_height) = pending_resize.height {
+                    *height = pending_height;
+                }
+            },
+            PartType::Torus { major_radius, minor_radius } => {
+                if let Some(pending_major_radius) = pending_resize.major_radius {
+                    *major_radius = pending_major_radius;
+                }
+
+                if let Some(pending_minor_radius) = pending_resize.minor_radius {
+                    *minor_radius = pending_minor_radius;
+                }
+            },
+            PartType::Cylinder { radius, half_height } => {
+                if let Some(pending_radius) = pending_resize.radius {
+                    *radius = pending_radius;
+                }
+
+                if let Some(pending_half_height) = pending_resize.half_height {
+                    *half_height = pending_half_height;
+                }
+            },
         }
         if let Some(subdivisions) = pending_resize.subdivisions {
             body_part.subdivisions = subdivisions;
@@ -134,15 +165,24 @@ impl SculptTool {
         let (mesh, body_part_type) = match *added_body_part_type {
             SculptBodyPartType::Sphere => {
                 let part_type = PartType::Sphere { radius: 0.5 };
-                (
-                    part_type.build_mesh(), 
-                    part_type 
-                )
+                (part_type.build_mesh(), part_type)
             },
             SculptBodyPartType::Capsule => {
                 let part_type = PartType::Capsule { radius: 0.3, half_length: 0.5 };
                 (part_type.build_mesh(), part_type)
-            } 
+            },
+            SculptBodyPartType::Cone => {
+                let part_type = PartType::Cone { radius: 0.3, height: 1.0 };
+                (part_type.build_mesh(), part_type)
+            },
+            SculptBodyPartType::Torus => {
+                let part_type = PartType::Torus { major_radius: 0.5, minor_radius: 0.1 };
+                (part_type.build_mesh(), part_type)
+            },
+            SculptBodyPartType::Cylinder => {
+                let part_type = PartType::Cylinder { radius: 0.3, half_height: 0.5 };
+                (part_type.build_mesh(), part_type)
+            },
         };
         
         let body_part_id = spawn_ctx.body_part_id.next();
