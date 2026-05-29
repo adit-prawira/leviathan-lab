@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bevy::ecs::relationship::Relationship;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -5,6 +7,7 @@ use bevy_egui::EguiContexts;
 
 use crate::editor::selector::{OriginalMaterial, Selector};
 use crate::history::edit_history::{Action, BodyPartSnapshot, EditHistory, MAX_HISTORY_COUNT, PreviousBodyMaterial};
+use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::{BodyPart, BodyPartBuilder, PartType};
 
@@ -16,7 +19,8 @@ pub struct SpawnContext<'w, 's>{
     meshes: ResMut<'w, Assets<Mesh>>,
     materials: ResMut<'w, Assets<StandardMaterial>>,
     commands: Commands<'w, 's>,
-    body_part_id: ResMut<'w, BodyPartId>
+    body_part_id: ResMut<'w, BodyPartId>,
+    body_part_query: Query<'w, 's, &'static BodyPart>
 }
 
 #[derive(SystemParam)]
@@ -141,8 +145,12 @@ impl SculptTool {
         let material_handle = Self::build_material_handle(&mut spawn_ctx.materials);
         let body_material = Self::build_body_material();
         let previous_body_material = PreviousBodyMaterial(body_material.clone());
+        let existing_names: HashSet<&str> = spawn_ctx.body_part_query.iter()
+            .map(|body_part| body_part.name.as_str())
+            .collect();
+        let body_part_name = BodyHierarchy::unique_name(&body_part_type.to_string(), &existing_names);
         let body_part = BodyPartBuilder::new(body_part_id)
-            .name(body_part_type.to_string())
+            .name(body_part_name)
             .part_type(body_part_type)
             .position(spawn_position)
             .build();
@@ -197,8 +205,9 @@ impl SculptTool {
         history.undo_stacks.push(Action::DeletePart { snapshot });
         if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
         history.redo_stacks.clear();
-        selection.entity = None;
+        
         commands.entity(entity).despawn();
+        selection.entity = parent.or_else(|| body_ctx.all_body_part_query.iter().find(|&e| e != entity));
     }
 
     fn capture_snapshot(
