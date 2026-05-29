@@ -97,8 +97,15 @@ impl PropertiesPanel {
                 ui.disable();
                 let mut sphere_value = matches!(body_part.part_type, PartType::Sphere { .. });
                 let mut capsule_value = matches!(body_part.part_type, PartType::Capsule { .. });
+                let mut cone_value = matches!(body_part.part_type, PartType::Cone { .. });
+                let mut torus_value  = matches!(body_part.part_type, PartType::Torus { .. });
+                let mut cylinder_value = matches!(body_part.part_type, PartType::Cylinder { .. });
+
                 ui.selectable_value(&mut sphere_value, true, "⬤ Sphere");
-                ui.selectable_value(&mut capsule_value, true,  "💊 Capsule"); 
+                ui.selectable_value(&mut capsule_value, true,  "💊 Capsule");
+                ui.selectable_value(&mut cone_value, true, "🔺Cone");
+                ui.selectable_value(&mut torus_value,  true, "🍩 Torus");
+                ui.selectable_value(&mut cylinder_value, true, "🥫 Cylinder");
             });
             ui.end_row();
 
@@ -340,42 +347,124 @@ impl PropertiesPanel {
         egui::Grid::new("Shape").spacing([8.0, 8.0]).show(ui, |ui| {
             match body_part.part_type {
                 PartType::Sphere { radius } => {
-                    ui.strong("Radius");
-                    let mut input_radius = pending.radius.unwrap_or(radius);
-                    
-                    let radius_field = ui.add(egui::Slider::new(&mut input_radius, 0.1..= 2.0));
-                    if radius_field.changed() {
-                        pending.radius = Some(input_radius);
-                        changed = true;
-                    }
-                },
-                PartType::Capsule { radius, half_length } => {
-                    ui.strong("Radius");
-                    let mut input_radius = pending.radius.unwrap_or(radius);
-                    let radius_field = ui.add(egui::Slider::new(&mut input_radius, 0.1..=2.0));
-                    
-                    if radius_field.changed() {
-                        pending.radius = Some(input_radius);
-                        changed = true;
-                    }
+                    Self::radius_slider(ui, &radius, pending, &mut changed);  
                     ui.end_row();
 
-                    ui.strong("Half-length");
-                    let mut input_half_length = pending.half_length.unwrap_or(half_length);
-                    let half_length_field = ui.add(egui::Slider::new(&mut input_half_length, 0.1..=5.0));
+                    Self::subdivisions_slider(ui, body_part, pending, &mut changed);
+                    ui.end_row();
+                },
+                PartType::Capsule { radius, half_length } => {
+                    Self::radius_slider(ui, &radius, pending, &mut changed);  
+                    ui.end_row();
+ 
+                    Self::half_length_slider(ui, &half_length, pending, &mut changed);
+                    ui.end_row();
 
-                    if half_length_field.changed() {
-                        pending.half_length = Some(input_half_length);
-                        changed = true;
-                    }
-                }
-            }
+                    Self::subdivisions_slider(ui, body_part, pending, &mut changed);
+                    ui.end_row();
+                },
+                PartType::Cone { radius, height} => {
+                    Self::radius_slider(ui, &radius, pending, &mut changed);  
+                    ui.end_row();
+
+                    Self::height_slider(ui, &height, pending, &mut changed); 
+                    ui.end_row();
+                },
+                PartType::Torus { major_radius, minor_radius } => {
+                    Self::major_radius_slider(ui, &major_radius, pending, &mut changed); 
+                    ui.end_row();
+
+                    Self::minor_radius_slider(ui, &minor_radius, pending, &mut changed);        
+                    ui.end_row();
+                },
+                PartType::Cylinder { radius, half_height } => {
+                    Self::radius_slider(ui, &radius, pending, &mut changed); 
+                    ui.end_row();
+
+                    Self::half_height_slider(ui, &half_height, pending, &mut changed);        
+                    ui.end_row();
+                },
+            } 
         });
 
         if changed {
             pending.entity = Some(entity);
         }
-
         ui.separator();
+    }
+
+    fn subdivisions_slider(ui: &mut Ui, body_part: &BodyPart, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Subdivisions");
+        ui.label("⚠ Resets sculpt");
+        ui.end_row();
+
+        let mut input_subdivisions = pending.subdivisions.unwrap_or(body_part.subdivisions);
+        let subdivisions_slider = ui.add(egui::Slider::new(&mut input_subdivisions, 1u32..=5u32));
+        
+        if subdivisions_slider.changed() {
+            pending.subdivisions = Some(input_subdivisions);
+            *changed = true;
+        }
+    }
+
+    fn radius_slider(ui: &mut Ui, default_radius: &f32, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Radius");
+        let mut input_radius = pending.radius.unwrap_or(*default_radius);
+        let radius_field = ui.add(egui::Slider::new(&mut input_radius, 0.1..=2.0));
+        if radius_field.changed() {
+            pending.radius = Some(input_radius);
+            *changed = true;
+        }
+    }
+
+    fn height_slider(ui: &mut Ui, default_height: &f32, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Height");
+        let mut input_height = pending.height.unwrap_or(*default_height);
+        let height_field = ui.add(egui::Slider::new(&mut input_height, 0.1..=5.0));
+        if height_field.changed() {
+            pending.height = Some(input_height);
+            *changed = true;
+        }
+    }
+
+    fn half_length_slider(ui: &mut Ui, default_half_length: &f32, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Half-length");
+        let mut input_half_length = pending.half_length.unwrap_or(*default_half_length);
+        let half_length_field = ui.add(egui::Slider::new(&mut input_half_length, 0.1..=5.0));
+
+        if half_length_field.changed() {
+            pending.half_length = Some(input_half_length);
+            *changed = true;
+        }
+    }
+
+    fn half_height_slider(ui: &mut Ui, default_half_height: &f32, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Half-Height");
+        let mut input_half_height = pending.half_height.unwrap_or(*default_half_height);
+        let half_height_field = ui.add(egui::Slider::new(&mut input_half_height, 0.1..=5.0));
+        if half_height_field.changed() {
+            pending.half_height = Some(input_half_height);
+            *changed = true;
+        }
+    }
+
+    fn major_radius_slider(ui: &mut Ui, default_major_radius: &f32, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Major-Radius");
+        let mut input_major_radius = pending.major_radius.unwrap_or(*default_major_radius);
+        let major_radius_field = ui.add(egui::Slider::new(&mut input_major_radius, 0.1..=2.0));
+        if major_radius_field.changed() {
+            pending.major_radius = Some(input_major_radius);
+            *changed = true;
+        }
+    }
+
+    fn minor_radius_slider(ui: &mut Ui, default_minor_radius: &f32, pending: &mut PendingResize, changed: &mut bool) {
+        ui.strong("Minor-Radius");
+        let mut input_minor_radius = pending.minor_radius.unwrap_or(*default_minor_radius);
+        let minor_input_field = ui.add(egui::Slider::new(&mut input_minor_radius, 0.1..=2.0));
+        if minor_input_field.changed() {
+            pending.minor_radius = Some(input_minor_radius);
+            *changed = true;
+        }
     }
 }
