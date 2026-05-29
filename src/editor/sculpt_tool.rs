@@ -48,7 +48,8 @@ pub struct BodyContext<'w, 's>{
 pub struct PendingResize {
     pub entity: Option<Entity>,
     pub radius: Option<f32>,
-    pub half_length: Option<f32>
+    pub half_length: Option<f32>,
+    pub subdivisions: Option<u32>
 }
 
 pub struct SculptTool;
@@ -83,11 +84,14 @@ impl SculptTool {
                 }
             }
         }
+        if let Some(subdivisions) = pending_resize.subdivisions {
+            body_part.subdivisions = subdivisions;
+        }
 
         let new_part_type = body_part.part_type.clone();
         let Some(mesh) = meshes.get_mut(&mesh3d.0) else {return;};
         
-        let new_mesh = body_part.part_type.build_mesh(); 
+        let new_mesh = body_part.build_mesh();
         
         *mesh = new_mesh;
         *pending_resize = PendingResize::default();

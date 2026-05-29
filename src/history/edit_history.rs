@@ -158,7 +158,7 @@ impl EditHistoryManager {
 
                 history.restoring = true;
                 body_part.part_type = old.clone();         
-                *mesh = body_part.part_type.build_mesh();
+                *mesh = body_part.build_mesh();
                 history.restoring = false;
             },
             Action::AssignParentEntity { entity_id, old_parent_id, old_transform, .. } => {
@@ -225,7 +225,7 @@ impl EditHistoryManager {
                 let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
                 history.restoring = true;
                 body_part.part_type = new.clone();
-                *mesh = body_part.part_type.build_mesh();
+                *mesh = body_part.build_mesh();
                 history.restoring = false;
             },
             Action::AssignParentEntity { entity_id, new_parent_id, new_transform, .. } => {
@@ -259,7 +259,7 @@ impl EditHistoryManager {
         materials: &mut Assets<StandardMaterial>,
         hierarchy: &mut BodyHierarchy
     ) {
-        let mesh = body_part_snapshot.part.part_type.build_mesh();
+        let mesh = body_part_snapshot.part.build_mesh();
         let material_handle = materials.add(StandardMaterial{
             base_color: body_part_snapshot.material.base_color,
             perceptual_roughness: body_part_snapshot.material.roughness,

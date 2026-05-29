@@ -18,7 +18,7 @@ impl Spawner {
         let monster: Monster = Monster::default_hatchling();
         let mut entity_map: HashMap<u32, Entity> = HashMap::new();
         for part in &monster.parts {
-            let mesh: Mesh = part.part_type.build_mesh(); 
+            let mesh: Mesh = part.build_mesh(); 
 
             let monster_material: &MaterialData = &monster.materials[part.material_id as usize];
             let material_handle = materials.add(StandardMaterial {

@@ -2,6 +2,8 @@ use core::fmt;
 
 use bevy::prelude::*;
 
+pub const DEFAULT_SUBDIVISION: u32 = 2;
+
 #[derive(Clone, Debug, Component, PartialEq)]
 pub enum PartType {
     Sphere { radius: f32 },
@@ -9,10 +11,18 @@ pub enum PartType {
 }
 
 impl PartType {
-    pub fn build_mesh(&self) -> Mesh{
+    pub fn build_mesh(&self) -> Mesh {
+        self.build_mesh_with(DEFAULT_SUBDIVISION)
+    }
+
+    pub fn build_mesh_with(&self, subdivisions: u32) -> Mesh{
         match self {
-            Self::Sphere { radius } => Sphere::new(*radius).mesh().build(),
-            Self::Capsule { radius, half_length } => Capsule3d{radius: *radius, half_length: *half_length}.mesh().build()
+            Self::Sphere { radius } => Sphere::new(*radius).mesh()
+                .ico(subdivisions)
+                .expect("subdivision to be in range of 1 - 5"),
+            Self::Capsule { radius, half_length } => Capsule3d{radius: *radius, half_length: *half_length}.mesh()
+                .rings(subdivisions)
+                .build()
         }
     }
 }
@@ -37,11 +47,16 @@ pub struct BodyPart {
     pub rotation: [f32; 4],
     pub scale: [f32; 3],
     pub material_id: u32,
+    pub subdivisions: u32
 }
 
 impl BodyPart {
     pub fn is_root(&self) -> bool {
         self.parent_id.is_none()
+    }
+
+    pub fn build_mesh(&self) -> Mesh {
+        self.part_type.build_mesh_with(self.subdivisions)
     }
 }
 
@@ -88,6 +103,7 @@ impl BodyPartBuilder {
              rotation: [0.0, 0.0, 0.0, 1.0],
              scale: [1.0, 1.0, 1.0],
              material_id: 0,
+             subdivisions: DEFAULT_SUBDIVISION
          }
      }
 }

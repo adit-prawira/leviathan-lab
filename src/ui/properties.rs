@@ -370,12 +370,25 @@ impl PropertiesPanel {
                     }
                 }
             }
+
+            ui.end_row();
+
+            ui.strong("Subdivisions");
+            ui.label("⚠ Resets sculpt");
+            ui.end_row();
+
+            let mut input_subdivisions = pending.subdivisions.unwrap_or(body_part.subdivisions);
+            let subdivisions_slider = ui.add(egui::Slider::new(&mut input_subdivisions, 1u32..=5u32));
+            
+            if subdivisions_slider.changed() {
+                pending.subdivisions = Some(input_subdivisions);
+                changed = true;
+            }
         });
 
         if changed {
             pending.entity = Some(entity);
         }
-
         ui.separator();
     }
 }
