@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::editor::gizmos::GizmosMode;
-use crate::editor::resource::TransformContext;
-use crate::editor::sculpt_tool::PendingResize;
+use crate::editor::resource::{PendingResize, SculptBrush, SculptMode, TransformContext};
 use crate::history::edit_history::{EditHistory};
 use crate::model::body_hierarchy::{BodyHierarchy, EntityReference, HierarchyReference};
 use crate::model::body_material::BodyMaterial;
@@ -24,6 +23,8 @@ pub struct EditorContext<'w> {
     symmetry_mode: ResMut<'w, SymmetryMode>,
     history: ResMut<'w, EditHistory>,
     pending_resize: ResMut<'w, PendingResize>,
+    sculpt_brush: ResMut<'w, SculptBrush>,
+    sculpt_mode: Res<'w, SculptMode>
 }
 
 #[derive(SystemParam)]
@@ -56,20 +57,20 @@ impl PropertiesPanel {
         // render panel on the right-hand side of the screen
         egui::SidePanel::right("properties").min_width(MIN_SIDE_PANEL_WIDTH)
             .show(contexts.ctx_mut().expect("egui context to be available"),|ui| {
-                Self::render_properties_section(ui, entity, body_part, &mut transform_ctx.transform_query);
+                Self::properties_section(ui, entity, body_part, &mut transform_ctx.transform_query);
 
-                Self::render_shape_section(ui, entity, body_part, &mut editor_ctx.pending_resize); 
+                Self::shape_section(ui, entity, body_part, &mut editor_ctx.pending_resize); 
 
-                Self::render_material_section(ui, &mut body_material);  
+                Self::material_section(ui, &mut body_material);  
 
                 let current_mode = *editor_ctx.mode;
                 let mut local_mode = current_mode;
                 
-                Self::render_mode_section(ui, &mut local_mode, &mut editor_ctx.symmetry_mode);
+                Self::mode_section(ui, &mut local_mode, &mut editor_ctx.symmetry_mode);
                 
                 if local_mode != current_mode {*editor_ctx.mode = local_mode;};  
 
-                Self::render_hierarchy_section(
+                Self::hierarchy_section(
                     ui, 
                     &entity, 
                     &selection_ctx.body_part_query, 
@@ -78,11 +79,13 @@ impl PropertiesPanel {
                     &mut commands, 
                     &mut editor_ctx.history 
                 );
+
+                Self::sculpt_section(ui, &mut editor_ctx.sculpt_brush, &editor_ctx.sculpt_mode);
             },
         );
     }
 
-    fn render_properties_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, transforms: &mut Query<&mut Transform>) {
+    fn properties_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, transforms: &mut Query<&mut Transform>) {
         let Ok(mut transform) = transforms.get_mut(entity) else { return; };
         ui.heading("Properties");
         ui.separator();
@@ -90,23 +93,6 @@ impl PropertiesPanel {
         egui::Grid::new("PropertiesSection").spacing([8.0, 8.0]).show(ui, |ui| {
             ui.strong("Body Part");
             ui.label(&body_part.name);
-            ui.end_row();
-
-            ui.strong("Shape");
-            ui.horizontal(|ui| {
-                ui.disable();
-                let mut sphere_value = matches!(body_part.part_type, PartType::Sphere { .. });
-                let mut capsule_value = matches!(body_part.part_type, PartType::Capsule { .. });
-                let mut cone_value = matches!(body_part.part_type, PartType::Cone { .. });
-                let mut torus_value  = matches!(body_part.part_type, PartType::Torus { .. });
-                let mut cylinder_value = matches!(body_part.part_type, PartType::Cylinder { .. });
-
-                ui.selectable_value(&mut sphere_value, true, "⬤ Sphere");
-                ui.selectable_value(&mut capsule_value, true,  "💊 Capsule");
-                ui.selectable_value(&mut cone_value, true, "🔺Cone");
-                ui.selectable_value(&mut torus_value,  true, "🍩 Torus");
-                ui.selectable_value(&mut cylinder_value, true, "🥫 Cylinder");
-            });
             ui.end_row();
 
             ui.strong("Position");
@@ -181,11 +167,35 @@ impl PropertiesPanel {
                 ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.01));
             });
             ui.end_row();
+
+            ui.strong("Shape");
+            ui.horizontal(|ui| {
+                ui.disable();
+                let mut sphere_value = matches!(body_part.part_type, PartType::Sphere { .. });
+                let mut capsule_value = matches!(body_part.part_type, PartType::Capsule { .. });
+                let mut cone_value = matches!(body_part.part_type, PartType::Cone { .. });
+
+                ui.selectable_value(&mut sphere_value, true, "⬤ Sphere");
+                ui.selectable_value(&mut capsule_value, true,  "💊 Capsule");
+                ui.selectable_value(&mut cone_value, true, "🔺Cone");
+            });
+            ui.end_row();
+
+            ui.strong("");
+            ui.horizontal(|ui| {
+                ui.disable();
+                let mut torus_value  = matches!(body_part.part_type, PartType::Torus { .. });
+                let mut cylinder_value = matches!(body_part.part_type, PartType::Cylinder { .. });
+
+                ui.selectable_value(&mut torus_value,  true, "🍩 Torus");
+                ui.selectable_value(&mut cylinder_value, true, "🥫 Cylinder");
+            });
+            ui.end_row();
         });
         ui.separator();
     } 
 
-    fn render_material_section(ui: &mut Ui, body_material: &mut BodyMaterial) {
+    fn material_section(ui: &mut Ui, body_material: &mut BodyMaterial) {
         ui.heading("Material");
         ui.separator();
 
@@ -225,7 +235,7 @@ impl PropertiesPanel {
         ui.separator();
     }
 
-    fn render_mode_section(ui: &mut Ui, local_mode: &mut GizmosMode, symmetry_mode: &mut SymmetryMode) {
+    fn mode_section(ui: &mut Ui, local_mode: &mut GizmosMode, symmetry_mode: &mut SymmetryMode) {
         ui.heading("Mode");
         ui.separator();
 
@@ -249,7 +259,7 @@ impl PropertiesPanel {
         ui.separator();
     }
 
-    fn render_hierarchy_section<'a>(
+    fn hierarchy_section<'a>(
         ui: &mut Ui, 
         selected_entity: &Entity, 
         body_parts: &'a Query<'a, 'a, (Entity, &'static BodyPart)>, 
@@ -296,13 +306,13 @@ impl PropertiesPanel {
 
         for entity in &roots {
             let entity_reference = EntityReference { selected_entity, entity };
-            Self::render_hierarchy_node(ui, 0, &entity_reference, &hierarchy_reference, transform_ctx, commands, history);
+            Self::hierarchy_node(ui, 0, &entity_reference, &hierarchy_reference, transform_ctx, commands, history);
         } 
         
         ui.separator();
     } 
 
-    fn render_hierarchy_node(
+    fn hierarchy_node(
         ui: &mut Ui,
         depth: usize,
         entity_reference: &EntityReference, 
@@ -333,12 +343,12 @@ impl PropertiesPanel {
         if let Some(children) = hierarchy_reference.children_map.get(entity) {
             for entity in children {
                 let entity_reference = EntityReference { selected_entity, entity };
-                Self::render_hierarchy_node(ui, depth + 1, &entity_reference, hierarchy_reference, transform_ctx, commands, history);
+                Self::hierarchy_node(ui, depth + 1, &entity_reference, hierarchy_reference, transform_ctx, commands, history);
             } 
         }; 
     } 
 
-    fn render_shape_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, pending: &mut PendingResize){
+    fn shape_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, pending: &mut PendingResize){
         ui.heading("Shape");
         ui.separator();
 
@@ -390,6 +400,24 @@ impl PropertiesPanel {
         if changed {
             pending.entity = Some(entity);
         }
+        ui.separator();
+    }
+
+    fn sculpt_section(ui: &mut Ui, brush: &mut SculptBrush, mode: &SculptMode) {
+        if *mode != SculptMode::Sculpt {return;}; 
+        ui.heading("Sculpt Brush");
+        ui.separator();
+
+        egui::Grid::new("SculptBrush").spacing([8.0, 8.0])
+            .show(ui, |ui| {
+                ui.strong("Strength");
+                ui.add(egui::Slider::new(&mut brush.strength, 0.01..=1.0));
+                ui.end_row();
+
+                ui.strong("Radius");
+                ui.add(egui::Slider::new(&mut brush.radius, 0.1..=3.0));
+                ui.end_row();
+            });
         ui.separator();
     }
 

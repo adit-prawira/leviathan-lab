@@ -1,4 +1,5 @@
 use bevy::ecs::system::SystemParam;
+use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 use crate::editor::selector::{OriginalMaterial, Selector};
 use crate::model::body_hierarchy::BodyHierarchy;
@@ -56,6 +57,11 @@ pub enum Action {
         new_parent: Option<Entity>,
         new_parent_id: Option<u32>,
         new_transform: Transform
+    },
+    SculptStroke {
+        entity: Entity,
+        old_vertex: Vec<[f32; 3]>,
+        new_vertex: Vec<[f32; 3]>
     }
 }
 
@@ -72,7 +78,7 @@ pub struct BodyContext<'w, 's> {
     transform_query: Query<'w, 's, &'static mut Transform>,
     body_material_query: Query<'w, 's, &'static mut BodyMaterial>,
     body_part_query: Query<'w, 's, &'static mut BodyPart>,
-    part_mesh_query: Query<'w, 's, &'static Mesh3d>,
+    mesh3d_query: Query<'w, 's, &'static Mesh3d>,
     meshes: ResMut<'w, Assets<Mesh>>,
     hierarychy: ResMut<'w, BodyHierarchy>
 }
@@ -152,7 +158,7 @@ impl EditHistoryManager {
                 history.restoring = false;
             },
             Action::ResizePartType { entity, ref old, .. } => {
-                let Ok(mesh3d) = body_ctx.part_mesh_query.get(entity) else {return;};
+                let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
                 let Ok(mut body_part) = body_ctx.body_part_query.get_mut(entity) else {return;};
                 let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
 
@@ -177,6 +183,15 @@ impl EditHistoryManager {
                     }
                 }
             },
+            Action::SculptStroke { entity, ref old_vertex, .. } => {
+                let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
+                let handle = &mesh3d.0;
+                let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
+                let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
+                
+                *vertices = old_vertex.clone();
+                mesh.compute_normals();
+            }
         };
           
         // save to redo stack so this undo can be reversed
@@ -220,7 +235,7 @@ impl EditHistoryManager {
                 history.restoring = false;
             },
             Action::ResizePartType { entity, ref new, .. } => {
-                let Ok(mesh3d) = body_ctx.part_mesh_query.get(entity) else {return;};
+                let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
                 let Ok(mut body_part) = body_ctx.body_part_query.get_mut(entity) else {return;};
                 let Some(mesh) = body_ctx.meshes.get_mut(&mesh3d.0) else {return;};
                 history.restoring = true;
@@ -245,6 +260,15 @@ impl EditHistoryManager {
                     },
                 }
             },
+            Action::SculptStroke { entity, ref new_vertex, .. } => {
+                let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
+                let handle = &mesh3d.0;
+                let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
+                let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
+                
+                *vertices = new_vertex.clone();
+                mesh.compute_normals();
+            }
         }
                 
         // save to undo stack so this redo can be reversed

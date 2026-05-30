@@ -17,6 +17,7 @@ impl Toolbar {
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut *mode, SculptMode::Select, "Select (Esc)");
                     ui.selectable_value(&mut *mode, SculptMode::AddBodyPart, "Add Body Part (A)");
+                    ui.selectable_value(&mut *mode, SculptMode::Sculpt, "Sculpt Body Part (V)");
                     if *mode != SculptMode::AddBodyPart {return;};
 
                     ui.separator();

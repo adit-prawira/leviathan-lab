@@ -2,6 +2,11 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use core::fmt;
 
+use crate::model::body_material::BodyMaterial;
+use crate::model::body_part::BodyPart;
+
+use super::selector::Selection;
+
 pub const INITIAL_BODY_PART_COLOR: Color = Color::srgba(0.5, 0.8, 0.5, 1.0);
 pub const INITIAL_METALLIC_COEFFICIENT: f32 = 0.0;
 pub const INITIAL_ROUGHNESS_COEFFICIENT: f32 = 0.0;
@@ -10,14 +15,16 @@ pub const INITIAL_ROUGHNESS_COEFFICIENT: f32 = 0.0;
 pub enum SculptMode {
     #[default]
     Select,
-    AddBodyPart
+    AddBodyPart,
+    Sculpt
 }
 
 impl fmt::Display for SculptMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SculptMode::AddBodyPart => write!(f, "Add Body Part"),
-            SculptMode::Select => write!(f, "Select")
+            SculptMode::Select => write!(f, "Select"),
+            SculptMode::Sculpt => write!(f, "Sculpt")
         }
     }
 }
@@ -31,6 +38,19 @@ pub enum SculptBodyPartType {
     Torus, 
     Cylinder
 }
+
+#[derive(Resource)]
+pub struct SculptBrush {
+    pub radius: f32,
+    pub strength: f32
+}
+
+impl Default for SculptBrush {
+    fn default() -> Self {
+        Self {radius: 0.5, strength: 0.3}
+    }
+}
+
 
 #[derive(Resource)]
 pub struct BodyPartId(pub u32);
@@ -59,4 +79,47 @@ impl IdGenerator for BodyPartId {
 pub struct TransformContext<'w, 's> {
     pub global_transform_query: Query<'w, 's, &'static GlobalTransform>,
     pub transform_query: Query<'w, 's, &'static mut Transform>
+}
+
+#[derive(SystemParam)]
+pub struct SpawnContext<'w, 's>{
+    pub meshes: ResMut<'w, Assets<Mesh>>,
+    pub mesh3d_query: Query<'w, 's, &'static Mesh3d>,
+    pub materials: ResMut<'w, Assets<StandardMaterial>>,
+    pub commands: Commands<'w, 's>,
+    pub body_part_id: ResMut<'w, BodyPartId>,
+    pub body_part_query: Query<'w, 's, &'static BodyPart>
+}
+
+#[derive(SystemParam)]
+pub struct ControlContext<'w> {
+    pub buttons: Res<'w, ButtonInput<MouseButton>>,
+    pub selection: Res<'w, Selection>
+}
+
+#[derive(SystemParam)]
+pub struct SceneContext<'w, 's> {
+    pub window_query: Query<'w, 's, &'static Window>,
+    pub camera_query: Query<'w, 's, (&'static Camera, &'static GlobalTransform)>,
+    pub global_transform_query: Query<'w, 's, &'static GlobalTransform>
+}
+
+#[derive(SystemParam)]
+pub struct BodyContext<'w, 's>{
+    pub body_part_query: Query<'w, 's, &'static BodyPart>,
+    pub body_material_query: Query<'w,'s, &'static BodyMaterial>,
+    pub transform_query: Query<'w, 's, &'static Transform>,
+    pub all_body_part_query: Query<'w, 's, Entity, With<BodyPart>>
+}
+
+#[derive(Resource, Default)]
+pub struct PendingResize {
+    pub entity: Option<Entity>,
+    pub radius: Option<f32>,
+    pub major_radius: Option<f32>,
+    pub minor_radius: Option<f32>,
+    pub height: Option<f32>,
+    pub half_height: Option<f32>,
+    pub half_length: Option<f32>,
+    pub subdivisions: Option<u32>,
 }
