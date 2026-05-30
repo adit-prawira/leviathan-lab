@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use bevy::ecs::relationship::Relationship;
-use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 
@@ -11,50 +10,8 @@ use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::{BodyPart, BodyPartBuilder, PartType};
 
-use super::resource::{BodyPartId, INITIAL_BODY_PART_COLOR, INITIAL_METALLIC_COEFFICIENT, INITIAL_ROUGHNESS_COEFFICIENT, IdGenerator, SculptBodyPartType, SculptMode};
+use super::resource::{BodyContext, ControlContext, INITIAL_BODY_PART_COLOR, INITIAL_METALLIC_COEFFICIENT, INITIAL_ROUGHNESS_COEFFICIENT, IdGenerator, PendingResize, SceneContext, SculptBodyPartType, SculptMode, SpawnContext};
 use super::selector::Selection;
-
-#[derive(SystemParam)]
-pub struct SpawnContext<'w, 's>{
-    meshes: ResMut<'w, Assets<Mesh>>,
-    materials: ResMut<'w, Assets<StandardMaterial>>,
-    commands: Commands<'w, 's>,
-    body_part_id: ResMut<'w, BodyPartId>,
-    body_part_query: Query<'w, 's, &'static BodyPart>
-}
-
-#[derive(SystemParam)]
-pub struct ControlContext<'w> {
-    buttons: Res<'w, ButtonInput<MouseButton>>,
-    selection: Res<'w, Selection>
-}
-
-#[derive(SystemParam)]
-pub struct SceneContext<'w, 's> {
-    window_query: Query<'w, 's, &'static Window>,
-    camera_query: Query<'w, 's, (&'static Camera, &'static GlobalTransform)>,
-    global_transform_query: Query<'w, 's, &'static GlobalTransform>
-}
-
-#[derive(SystemParam)]
-pub struct BodyContext<'w, 's>{
-    body_part_query: Query<'w, 's, &'static BodyPart>,
-    body_material_query: Query<'w,'s, &'static BodyMaterial>,
-    transform_query: Query<'w, 's, &'static Transform>,
-    all_body_part_query: Query<'w, 's, Entity, With<BodyPart>>
-}
-
-#[derive(Resource, Default)]
-pub struct PendingResize {
-    pub entity: Option<Entity>,
-    pub radius: Option<f32>,
-    pub major_radius: Option<f32>,
-    pub minor_radius: Option<f32>,
-    pub height: Option<f32>,
-    pub half_height: Option<f32>,
-    pub half_length: Option<f32>,
-    pub subdivisions: Option<u32>,
-}
 
 pub struct SculptTool;
 
@@ -224,6 +181,7 @@ impl SculptTool {
     pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<SculptMode>) {
         if keys.just_pressed(KeyCode::KeyA) {*mode = SculptMode::AddBodyPart;};
         if keys.just_pressed(KeyCode::Escape) {*mode = SculptMode::Select;};
+        if keys.just_pressed(KeyCode::KeyV) {*mode = SculptMode::Sculpt;};
     }
 
     pub fn handle_delete_body_part(
