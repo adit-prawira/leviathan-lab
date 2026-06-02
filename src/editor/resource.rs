@@ -39,15 +39,36 @@ pub enum SculptBodyPartType {
     Cylinder
 }
 
+#[derive(Resource, Default, PartialEq, Clone)]
+pub enum BrushMode {
+    #[default]
+    Pull,
+    Push, 
+    Smooth, 
+    Flatten
+}
+
+impl fmt::Display for BrushMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BrushMode::Pull => write!(f, "Pull"),
+            BrushMode::Push => write!(f, "Push"),
+            BrushMode::Smooth => write!(f, "Smooth"),
+            BrushMode::Flatten => write!(f, "Flatten"),
+        }
+    }
+}
+
 #[derive(Resource)]
 pub struct SculptBrush {
     pub radius: f32,
-    pub strength: f32
+    pub strength: f32,
+    pub mode: BrushMode
 }
 
 impl Default for SculptBrush {
     fn default() -> Self {
-        Self {radius: 0.5, strength: 0.3}
+        Self {radius: 0.5, strength: 0.3, mode: BrushMode::Pull}
     }
 }
 

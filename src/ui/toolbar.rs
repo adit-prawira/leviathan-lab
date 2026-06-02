@@ -1,13 +1,14 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 
-use crate::editor::resource::{SculptBodyPartType, SculptMode};
+use crate::editor::resource::{BrushMode, SculptBodyPartType, SculptMode};
 
 pub struct Toolbar;
 
 impl Toolbar {
     pub fn show(
         mut mode: ResMut<SculptMode>,
+        mut brush_mode: ResMut<BrushMode>,        
         mut added_body_part_type: ResMut<SculptBodyPartType>,
         mut contexts: EguiContexts
     ) {
@@ -18,6 +19,15 @@ impl Toolbar {
                     ui.selectable_value(&mut *mode, SculptMode::Select, "Select (Esc)");
                     ui.selectable_value(&mut *mode, SculptMode::AddBodyPart, "Add Body Part (A)");
                     ui.selectable_value(&mut *mode, SculptMode::Sculpt, "Sculpt Body Part (V)");
+                    
+                    if *mode == SculptMode::Sculpt {
+                        ui.separator();
+                        ui.selectable_value(&mut *brush_mode, BrushMode::Pull, "↑ Pull");
+                        ui.selectable_value(&mut *brush_mode, BrushMode::Push, "↓ Push");
+                        ui.selectable_value(&mut *brush_mode, BrushMode::Smooth, "〜 Smooth");
+                        ui.selectable_value(&mut *brush_mode, BrushMode::Flatten, "— Flatten");
+                    }
+
                     if *mode != SculptMode::AddBodyPart {return;};
 
                     ui.separator();

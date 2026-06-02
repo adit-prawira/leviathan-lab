@@ -1,10 +1,20 @@
 use bevy::input::mouse::MouseWheel;
+use bevy::math::FloatPow;
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 
 use bevy_egui::EguiContexts;
+use crate::editor::resource::BrushMode;
+
 use super::resource::{ControlContext, SceneContext, SculptBrush, SculptMode, SpawnContext, TransformContext};
 
+struct BrushInput<'a>{
+    vertices: &'a mut Vec<[f32; 3]>,
+    contact: Vec3,
+    brush_radius: f32,
+    strength: f32,
+    ray: &'a Ray3d
+}
 pub struct SculptBrushTool;
 
 impl SculptBrushTool {
@@ -27,20 +37,19 @@ impl SculptBrushTool {
         let Some(local_brush_contact_point) = Self::get_local_brush_contact_point(&entity_world, &ray) else {return;};
         
         // Applying brush on mesh vertices
-        let brush_radius_squared = brush.radius * brush.radius; 
-        
-        for vertex in vertices.iter_mut() {
-            let vertex_position = Vec3::from(*vertex);
-            let distance_squared = vertex_position.distance_squared(local_brush_contact_point);
-            let is_within_brush_effective_radius = distance_squared < brush_radius_squared;
-
-            if is_within_brush_effective_radius {
-                let falloff = 1.0 - (distance_squared / brush_radius_squared).sqrt();
-                let delta = Vec3::Y * brush.strength * falloff;
-                *vertex = (vertex_position + delta).to_array();
-            }
-        }
-
+        let mut input = BrushInput {
+            vertices,
+            contact: local_brush_contact_point,
+            brush_radius: brush.radius,
+            strength: brush.strength, 
+            ray: &ray
+        };
+        match brush.mode {
+            BrushMode::Pull => Self::apply_pull(&mut input),
+            BrushMode::Push => Self::apply_push(&mut input),
+            BrushMode::Smooth => Self::apply_smooth(&mut input),
+            BrushMode::Flatten => Self::apply_flatten(&mut input),
+        } 
         mesh.compute_normals();
     }
 
@@ -110,4 +119,98 @@ impl SculptBrushTool {
 
         Some(local_brush_contact_point)
     }
+
+    fn apply_pull(brush_input: &mut BrushInput) {
+        let brush_radius_squared = brush_input.brush_radius.squared();
+        let direction = -*brush_input.ray.direction;
+        for vertex in brush_input.vertices.iter_mut() {
+            let position = Vec3::from(*vertex);
+            let distance_squared = position.distance_squared(brush_input.contact);
+            let is_within_brush_radius = distance_squared < brush_radius_squared;
+            
+            if !is_within_brush_radius {continue;};
+
+            let falloff = 1.0 - (distance_squared / brush_radius_squared).sqrt();
+            let delta = direction*brush_input.strength*falloff;
+            *vertex = (position + delta).to_array();
+        }
+    }
+
+    fn apply_push(brush_input: &mut BrushInput) {
+        let brush_radius_squared = brush_input.brush_radius.squared();
+        let direction = *brush_input.ray.direction;
+        for vertex in brush_input.vertices.iter_mut() {
+            let position = Vec3::from(*vertex);
+            let distance_squared = position.distance_squared(brush_input.contact);
+            let is_within_brush_radius = distance_squared < brush_radius_squared;
+            
+            if !is_within_brush_radius {continue;};
+            
+            let falloff = 1.0 - (distance_squared / brush_radius_squared).sqrt();
+            let delta = direction*brush_input.strength*falloff;
+            *vertex = (position + delta).to_array();
+        }
+    }
+    
+    fn apply_smooth(brush_input: &mut BrushInput) {
+        let mut sum = Vec3::ZERO;
+        let mut count = 0;
+        let brush_radius_squared = brush_input.brush_radius.squared();
+        
+        for vertex in brush_input.vertices.iter() {
+            let position = Vec3::from(*vertex);
+            let distance_squared = position.distance_squared(brush_input.contact);
+            let is_within_brush_radius = distance_squared < brush_radius_squared;
+            
+            if !is_within_brush_radius {continue;};
+
+            sum += position; 
+            count += 1;
+        }
+
+        if count == 0 {return;};
+        let average = sum/(count as f32);
+
+        for vertex in brush_input.vertices.iter_mut() {
+            let position = Vec3::from(*vertex);
+            let distance_squared = position.distance_squared(brush_input.contact);
+            let is_within_brush_radius = distance_squared < brush_radius_squared;
+
+            if !is_within_brush_radius {continue;};
+
+            let falloff = 1.0 - (distance_squared/brush_radius_squared).sqrt();
+            *vertex = position.lerp(average, brush_input.strength*falloff).to_array();
+        }
+    }
+    
+    fn apply_flatten(brush_input: &mut BrushInput) {
+        let brush_radius_squared = brush_input.brush_radius.squared();
+
+        let mut sum_y = 0.0;
+        let mut count = 0;
+
+        for vertex in brush_input.vertices.iter() {
+            let position = Vec3::from(*vertex);
+            let distance_squared = position.distance_squared(brush_input.contact);
+            let is_within_brush_radius = distance_squared < brush_radius_squared;
+            if !is_within_brush_radius {continue;};
+
+            sum_y += position.y;
+            count += 1;
+        }
+
+        if count == 0 {return;}
+        let average_y = sum_y / (count as f32);
+
+        for vertex in brush_input.vertices.iter_mut() {
+            let position = Vec3::from(*vertex);
+            let distance_squared = position.distance_squared(brush_input.contact);
+            let is_within_brush_radius = distance_squared < brush_radius_squared;
+            if !is_within_brush_radius {continue;};
+
+            let falloff = 1.0 - (distance_squared / brush_radius_squared).sqrt();
+            let target = Vec3::new(position.x, average_y, position.z);
+            *vertex = position.lerp(target, brush_input.strength*falloff).to_array();
+        }
+    } 
 }

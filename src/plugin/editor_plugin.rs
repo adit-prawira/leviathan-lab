@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::editor::gizmos::{GizmosManager, GizmosMode};
-use crate::editor::resource::{BodyPartId, PendingResize, SculptBodyPartType, SculptBrush, SculptMode};
+use crate::editor::resource::{BodyPartId, BrushMode, PendingResize, SculptBodyPartType, SculptBrush, SculptMode};
 use crate::editor::sculpt_brush_tool::SculptBrushTool;
 use crate::editor::sculpt_tool::{SculptTool};
 use crate::editor::selector::{Selection, Selector};
@@ -14,6 +14,7 @@ impl Plugin for EditorPlugin {
         app.insert_resource(SculptMode::default())
             .insert_resource(SculptBodyPartType::default())
             .insert_resource(SculptBrush::default())
+            .insert_resource(BrushMode::default())
             .insert_resource(BodyPartId::default())
             .insert_resource(Selection::default())
             .insert_resource(SymmetryMode::default())
