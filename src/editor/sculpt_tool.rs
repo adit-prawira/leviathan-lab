@@ -101,7 +101,8 @@ impl SculptTool {
         control_ctx: ControlContext, 
         scene_ctx: SceneContext, 
         mut egui_contexts: EguiContexts,
-        mut spawn_ctx: SpawnContext
+        mut spawn_ctx: SpawnContext,
+        mut history: ResMut<EditHistory>
     ) {
         if *mode != SculptMode::AddBodyPart {return;};
         if !control_ctx.buttons.just_pressed(MouseButton::Left) {return;};
@@ -162,7 +163,7 @@ impl SculptTool {
             Transform::from_translation(spawn_position),
             body_part.clone(),
             OriginalMaterial(material_handle),
-            body_material,
+            body_material.clone(),
             previous_body_material
         ))
         .observe(Selector::on_press)
@@ -176,6 +177,19 @@ impl SculptTool {
             };
             spawn_ctx.commands.entity(parent_entity).add_child(child_entity);
         };
+
+        history.undo_stacks.push(Action::AddPart { 
+            snapshot: BodyPartSnapshot { 
+                part: body_part.clone(), 
+                material: body_material.clone(), 
+                transform: Transform::from_translation(spawn_position), 
+                parent: control_ctx.selection.entity, 
+                children: vec![], 
+                restored_entity: Some(child_entity) 
+            } 
+        });
+        if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
+        history.redo_stacks.clear();
     }
     
     pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<SculptMode>) {
