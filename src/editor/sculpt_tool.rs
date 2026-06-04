@@ -4,6 +4,7 @@ use bevy::ecs::relationship::Relationship;
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 
+use crate::editor::bvh::{BvhCache, BvhManager};
 use crate::editor::selector::{OriginalMaterial, Selector};
 use crate::history::edit_history::{Action, BodyPartSnapshot, EditHistory, MAX_HISTORY_COUNT, PreviousBodyMaterial};
 use crate::model::body_hierarchy::BodyHierarchy;
@@ -21,7 +22,8 @@ impl SculptTool {
         mut pending_resize: ResMut<PendingResize>,
         mut body_part_query: Query<&mut BodyPart>,
         mut meshes: ResMut<Assets<Mesh>>,
-        mut history: ResMut<EditHistory>
+        mut history: ResMut<EditHistory>,
+        mut bvh_cache: ResMut<BvhCache>
     ) {
         let Some(entity) = pending_resize.entity else {return;}; 
         let Ok(mesh3d) = part_mesh_query.get(entity) else {return;};
@@ -77,11 +79,15 @@ impl SculptTool {
         }
 
         let new_part_type = body_part.part_type.clone();
-        let Some(mesh) = meshes.get_mut(&mesh3d.0) else {return;};
-        
-        let new_mesh = body_part.build_mesh();
-        
-        *mesh = new_mesh;
+        let mesh_handle = mesh3d.0.clone();
+        {
+            let Some(mesh) = meshes.get_mut(&mesh_handle) else {return;};
+            let new_mesh = body_part.build_mesh();
+            *mesh = new_mesh;
+        }
+ 
+        let Some(mesh) = meshes.get(&mesh_handle) else {return;};
+        BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
         *pending_resize = PendingResize::default();
         
         let part_type_changed = old_part_type != new_part_type;
@@ -198,6 +204,7 @@ impl SculptTool {
         if keys.just_pressed(KeyCode::KeyV) {*mode = SculptMode::Sculpt;};
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_delete_body_part(
         keys: Res<ButtonInput<KeyCode>>, 
         body_ctx: BodyContext, 
@@ -205,7 +212,8 @@ impl SculptTool {
         children_query: Query<&Children>, 
         mut selection: ResMut<Selection>,
         mut history: ResMut<EditHistory>,
-        mut commands: Commands
+        mut commands: Commands,
+        mut bvh_cache: ResMut<BvhCache>
     ) {
         let is_delete_command_pressed = keys.just_pressed(KeyCode::Delete)
             || keys.just_pressed(KeyCode::Backspace);
@@ -223,6 +231,7 @@ impl SculptTool {
         history.redo_stacks.clear();
         
         commands.entity(entity).despawn();
+        bvh_cache.meshes.remove(&entity);
         selection.entity = parent.or_else(|| body_ctx.all_body_part_query.iter().find(|&e| e != entity));
     }
 
