@@ -43,6 +43,9 @@ pub enum Action {
         old: PartType,
         new: PartType
     },
+    AddPart {
+        snapshot: BodyPartSnapshot
+    },
     DeletePart {
         snapshot: BodyPartSnapshot
     },
@@ -150,6 +153,13 @@ impl EditHistoryManager {
                 *transform = old;
                 history.restoring = false;
             },
+            Action::AddPart { ref snapshot } => {
+                let Some(entity) = snapshot.restored_entity else {return;};
+                history.restoring = true;
+                body_ctx.hierarychy.entities.remove(&snapshot.part.id);
+                commands.entity(entity).despawn();
+                history.restoring = false;
+            },
             Action::DeletePart { ref mut snapshot } => {
                 history.restoring = true;
                 let resolved_parent = snapshot.parent.
@@ -202,7 +212,8 @@ impl EditHistoryManager {
         keys: Res<ButtonInput<KeyCode>>,
         mut body_ctx: BodyContext, 
         mut history: ResMut<EditHistory>,
-        mut commands: Commands, 
+        mut commands: Commands,
+        mut materials: ResMut<Assets<StandardMaterial>>
     ) {
         let is_combination_pressed: bool = (Self::is_ctrl_pressed(&keys) || Self::is_cmd_pressed(&keys))
             && Self::is_shift_pressed(&keys)
@@ -225,6 +236,12 @@ impl EditHistoryManager {
                 let Ok(mut transform) = body_ctx.transform_query.get_mut(entity) else {return;};
                 history.restoring = true;
                 *transform = new;
+                history.restoring = false;
+            },
+            Action::AddPart { ref mut snapshot } => {
+                history.restoring = true;
+                let resolved_parent = snapshot.parent.and_then(|_| body_ctx.hierarychy.entities.get(&snapshot.part.parent_id?).copied());
+                Self::restore_snapshot(snapshot, resolved_parent, &mut commands, &mut body_ctx.meshes, &mut materials, &mut body_ctx.hierarychy);
                 history.restoring = false;
             },
             Action::DeletePart { ref mut snapshot } => {
