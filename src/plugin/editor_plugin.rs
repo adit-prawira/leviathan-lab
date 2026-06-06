@@ -7,6 +7,7 @@ use crate::editor::sculpt_brush_tool::SculptBrushTool;
 use crate::editor::sculpt_tool::{SculptTool};
 use crate::editor::selector::{Selection, Selector};
 use crate::editor::symmetry::{PendingSymmetricChanges, Symmetry, SymmetryMode};
+use crate::history::edit_history::PendingSculptChanges;
 
 pub struct EditorPlugin;
 
@@ -21,6 +22,7 @@ impl Plugin for EditorPlugin {
             .insert_resource(SymmetryMode::default())
             .insert_resource(PendingSymmetricChanges::default())
             .insert_resource(PendingResize::default())
+            .insert_resource(PendingSculptChanges::default())
             .insert_resource(GizmosMode::default())
             .insert_resource(BvhCache::default())   
             .add_systems(Update, (

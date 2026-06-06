@@ -2,6 +2,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use core::fmt;
 
+use crate::history::edit_history::PendingSculptChanges;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::BodyPart;
 
@@ -101,7 +102,8 @@ impl IdGenerator for BodyPartId {
 pub struct SculptContext<'w>{
     pub mode: Res<'w, SculptMode>,
     pub brush: Res<'w, SculptBrush>,
-    pub bvh_cache: ResMut<'w, BvhCache>
+    pub bvh_cache: ResMut<'w, BvhCache>,
+    pub pending_sculpt_changes: ResMut<'w, PendingSculptChanges>
 }
 
 #[derive(SystemParam)]
@@ -122,8 +124,9 @@ pub struct SpawnContext<'w, 's>{
 
 #[derive(SystemParam)]
 pub struct ControlContext<'w> {
-    pub buttons: Res<'w, ButtonInput<MouseButton>>,
-    pub selection: Res<'w, Selection>
+    pub mouse_buttons: Res<'w, ButtonInput<MouseButton>>,
+    pub selection: Res<'w, Selection>,
+    pub keys: Res<'w, ButtonInput<KeyCode>>
 }
 
 #[derive(SystemParam)]

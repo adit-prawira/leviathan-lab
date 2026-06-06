@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 use bevy_egui::EguiContexts;
 use crate::editor::resource::BrushMode;
+use crate::history::edit_history::{Action, EditHistory, EditHistoryManager};
 
 use super::bvh::BvhManager;
 use super::resource::{ControlContext, SceneContext, SculptBrush, SculptContext, SculptMode, SpawnContext, TransformContext};
@@ -27,17 +28,19 @@ impl SculptBrushTool {
         mut sculpt_ctx: SculptContext,
         mut spawn_ctx: SpawnContext,
         mut egui_ctxs: EguiContexts,
+        mut history: ResMut<EditHistory>,
     ) {
         if *sculpt_ctx.mode != SculptMode::Sculpt {return;};
-        if !control_ctx.buttons.pressed(MouseButton::Left) {return;};
+        
+        let just_pressed = control_ctx.mouse_buttons.just_pressed(MouseButton::Left);
+        let is_hold_pressed = control_ctx.mouse_buttons.pressed(MouseButton::Left);
+        let just_released = control_ctx.mouse_buttons.just_released(MouseButton::Left);
+        if !is_hold_pressed && !just_pressed && !just_released {return;};
+
         if egui_ctxs.ctx_mut().expect("egui context").wants_pointer_input() {return;};
 
         let Some(entity) = control_ctx.selection.entity else {return;}; 
-        let Ok(entity_world) = transform_ctx.global_transform_query.get(entity) else {return;};
-        let Some(ray) = Self::get_cursor_ray(&scene_ctx) else {return;};
-        let Some((world_hit, world_normal)) = BvhManager::intersect_mesh(&sculpt_ctx.bvh_cache, &ray, entity, entity_world) else {return;};
-        
-        let affine = entity_world.affine();
+
         let mesh_handle = {
            let Ok(mesh3d) = spawn_ctx.mesh3d_query.get(entity) else {return;}; 
            mesh3d.0.clone()
@@ -45,23 +48,51 @@ impl SculptBrushTool {
         let Some(mesh) = spawn_ctx.meshes.get_mut(&mesh_handle) else {return;};
         {
             let Some(vertices) = Self::get_vertices(mesh) else {return;};
-            let mut input = BrushInput {
-                vertices,
-                contact: world_hit,
-                normal: world_normal,
-                strength: sculpt_ctx.brush.strength,
-                brush_radius: sculpt_ctx.brush.radius,
-                affine
-            };
-            match sculpt_ctx.brush.mode {
-                BrushMode::Pull => Self::apply_pull(&mut input),
-                BrushMode::Push => Self::apply_push(&mut input),
-                BrushMode::Smooth => Self::apply_smooth(&mut input),
-                BrushMode::Flatten => Self::apply_flatten(&mut input),
+            
+            // capture existing vertices when mouse press event started 
+            if just_pressed {
+                sculpt_ctx.pending_sculpt_changes.vertices = vertices.clone();
+            }
+
+            // apply sculpt during left mous hold and dragging event 
+            if is_hold_pressed {
+                let Ok(entity_world) = transform_ctx.global_transform_query.get(entity) else {return;};
+                let Some(ray) = Self::get_cursor_ray(&scene_ctx) else {return;};
+                let Some((world_hit, world_normal)) = BvhManager::intersect_mesh(&sculpt_ctx.bvh_cache, &ray, entity, entity_world) else {return;}; 
+                let affine = entity_world.affine();
+                let mut input = BrushInput {
+                    vertices,
+                    contact: world_hit,
+                    normal: world_normal,
+                    strength: sculpt_ctx.brush.strength,
+                    brush_radius: sculpt_ctx.brush.radius,
+                    affine
+                };
+                match sculpt_ctx.brush.mode {
+                    BrushMode::Pull => Self::apply_pull(&mut input),
+                    BrushMode::Push => Self::apply_push(&mut input),
+                    BrushMode::Smooth => Self::apply_smooth(&mut input),
+                    BrushMode::Flatten => Self::apply_flatten(&mut input),
+                }
+            }
+
+            // record changed body part vertices upon left mouse button release 
+            // vertices has been mutated at this point
+            if just_released {
+                let new_vertices = vertices.clone();
+
+                EditHistoryManager::record(&mut history, Action::SculptStroke { 
+                    entity, 
+                    old_vertices: sculpt_ctx.pending_sculpt_changes.vertices.clone(),
+                    new_vertices 
+                });
             }
         }
-        mesh.compute_normals();
-        BvhManager::rebuild_for_entity(mesh, entity, &mut sculpt_ctx.bvh_cache);
+
+        if is_hold_pressed {
+            mesh.compute_normals();
+            BvhManager::rebuild_for_entity(mesh, entity, &mut sculpt_ctx.bvh_cache);
+        }
     }
 
     pub fn handle_brush_radius_change(
