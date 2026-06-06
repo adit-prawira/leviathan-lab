@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+use crate::editor::bvh::{BvhCache, BvhManager};
 use crate::editor::gizmos::{GizmosManager, GizmosMode};
 use crate::editor::resource::{BodyPartId, BrushMode, PendingResize, SculptBodyPartType, SculptBrush, SculptMode};
 use crate::editor::sculpt_brush_tool::SculptBrushTool;
@@ -21,6 +22,7 @@ impl Plugin for EditorPlugin {
             .insert_resource(PendingSymmetricChanges::default())
             .insert_resource(PendingResize::default())
             .insert_resource(GizmosMode::default())
+            .insert_resource(BvhCache::default())   
             .add_systems(Update, (
                 Selector::handle_deselect,
                 Selector::handle_button_input,
@@ -28,9 +30,10 @@ impl Plugin for EditorPlugin {
                 SculptTool::handle_add_body_part,
                 SculptTool::handle_delete_body_part,
                 SculptTool::handle_resize,
-                SculptBrushTool::handle_brush,
-                SculptBrushTool::handle_brush_radius_change, 
+                SculptBrushTool::handle_brush_radius_change,
+                SculptBrushTool::handle_brush.before(SculptBrushTool::handle_brush_cursor),
                 SculptBrushTool::handle_brush_cursor,
+                BvhManager::handle_rebuild.before(SculptBrushTool::handle_brush),
                 (
                     // changes must run collected before
                     // changes can be applied
@@ -40,7 +43,7 @@ impl Plugin for EditorPlugin {
                 GizmosManager::handle_draw,
                 GizmosManager::handle_sync,
                 GizmosManager::handle_button_input,
-                GizmosManager::handle_transform_change,
+                GizmosManager::handle_transform_change, 
             ));
     }
 }

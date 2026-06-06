@@ -5,6 +5,7 @@ use core::fmt;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::BodyPart;
 
+use super::bvh::BvhCache;
 use super::selector::Selection;
 
 pub const INITIAL_BODY_PART_COLOR: Color = Color::srgba(0.5, 0.8, 0.5, 1.0);
@@ -94,6 +95,13 @@ impl IdGenerator for BodyPartId {
         self.0 += 1;
         id
     }
+}
+
+#[derive(SystemParam)]
+pub struct SculptContext<'w>{
+    pub mode: Res<'w, SculptMode>,
+    pub brush: Res<'w, SculptBrush>,
+    pub bvh_cache: ResMut<'w, BvhCache>
 }
 
 #[derive(SystemParam)]
