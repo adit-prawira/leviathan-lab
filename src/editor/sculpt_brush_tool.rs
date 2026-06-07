@@ -64,7 +64,7 @@ impl SculptBrushTool {
                     vertices,
                     contact: world_hit,
                     normal: world_normal,
-                    strength: sculpt_ctx.brush.strength,
+                    strength: sculpt_ctx.brush.effective_strength(),
                     brush_radius: sculpt_ctx.brush.radius,
                     affine
                 };
@@ -101,12 +101,15 @@ impl SculptBrushTool {
 
     pub fn handle_brush_radius_change(
         mode: Res<SculptMode>,
+        keys: Res<ButtonInput<KeyCode>>,
         mut scroll: MessageReader<MouseWheel>,
         mut brush: ResMut<SculptBrush>
     ) {
         if *mode != SculptMode::Sculpt {return;};
         for event in scroll.read() {
-            brush.radius = (brush.radius + event.y*0.05).clamp(0.05, 5.0);
+            let is_shift_key_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+            if !is_shift_key_pressed {return;} 
+            brush.radius = (brush.radius + event.x*0.01).clamp(0.01, 5.0);
         }
     }
 

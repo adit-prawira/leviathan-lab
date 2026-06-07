@@ -75,6 +75,11 @@ impl Default for SculptBrush {
     }
 }
 
+impl SculptBrush {
+    pub fn effective_strength(&self) -> f32 {
+        self.strength * (self.radius / 0.5).min(1.0)
+    }
+}
 
 #[derive(Resource)]
 pub struct BodyPartId(pub u32);
