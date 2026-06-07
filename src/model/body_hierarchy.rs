@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 use crate::editor::resource::TransformContext;
-use crate::history::edit_history::{Action, EditHistory};
+use crate::history::edit_history::{Action, EditHistory, EditHistoryManager};
 
 use super::body_part::BodyPart;
 
@@ -68,7 +68,8 @@ impl BodyHierarchy {
                 *transform = new_transform;
             }
             commands.entity(dragged).remove::<ChildOf>();
-            history.undo_stacks.push(Action::AssignParentEntity { 
+            
+            EditHistoryManager::record(history, Action::AssignParentEntity { 
                 entity: dragged,
                 entity_id: dragged_body_part.id,
                 old_parent: Some(old_parent),
@@ -77,8 +78,7 @@ impl BodyHierarchy {
                 new_parent: None, 
                 new_transform,
                 new_parent_id: None,
-            });
-            history.redo_stacks.clear();
+            }); 
         } 
     } 
 
@@ -115,8 +115,8 @@ impl BodyHierarchy {
             }
 
             commands.entity(*entity).add_child(dragged);
-
-            history.undo_stacks.push(Action::AssignParentEntity { 
+            
+            EditHistoryManager::record(history, Action::AssignParentEntity { 
                 entity: dragged,
                 entity_id: dragged_body_part.id,
                 old_parent,
@@ -125,8 +125,7 @@ impl BodyHierarchy {
                 new_parent, 
                 new_transform,
                 new_parent_id: Some(target_body_part.id),
-            });
-            history.redo_stacks.clear();
+            }); 
         };
     }
 }
