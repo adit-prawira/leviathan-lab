@@ -6,7 +6,7 @@ use bevy_egui::EguiContexts;
 
 use crate::editor::bvh::{BvhCache, BvhManager};
 use crate::editor::selector::{OriginalMaterial, Selector};
-use crate::history::edit_history::{Action, BodyPartSnapshot, EditHistory, MAX_HISTORY_COUNT, PreviousBodyMaterial};
+use crate::history::edit_history::{Action, BodyPartSnapshot, EditHistory, EditHistoryManager, PreviousBodyMaterial};
 use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::{BodyPart, BodyPartBuilder, PartType};
@@ -92,13 +92,12 @@ impl SculptTool {
         
         let part_type_changed = old_part_type != new_part_type;
         if !part_type_changed {return;};
-
-        history.undo_stacks.push(Action::ResizePartType { 
+    
+        EditHistoryManager::record(&mut history, Action::ResizePartType { 
             entity, 
             old: old_part_type, 
             new: new_part_type 
-        });
-        history.redo_stacks.clear();
+        }); 
     }
 
     pub fn handle_add_body_part(
@@ -184,7 +183,7 @@ impl SculptTool {
             spawn_ctx.commands.entity(parent_entity).add_child(child_entity);
         };
 
-        history.undo_stacks.push(Action::AddPart { 
+        EditHistoryManager::record(&mut history, Action::AddPart { 
             snapshot: BodyPartSnapshot { 
                 part: body_part.clone(), 
                 material: body_material.clone(), 
@@ -193,9 +192,7 @@ impl SculptTool {
                 children: vec![], 
                 restored_entity: Some(child_entity) 
             } 
-        });
-        if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
-        history.redo_stacks.clear();
+        }); 
     }
     
     pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<SculptMode>) {
@@ -226,9 +223,8 @@ impl SculptTool {
 
         let parent = parent_query.get(entity).ok().map(|p| p.get()); 
         let snapshot = Self::capture_snapshot(entity, parent, &children_query, &body_ctx);
-        history.undo_stacks.push(Action::DeletePart { snapshot });
-        if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
-        history.redo_stacks.clear();
+        
+        EditHistoryManager::record(&mut history, Action::DeletePart { snapshot }); 
         
         commands.entity(entity).despawn();
         bvh_cache.meshes.remove(&entity);

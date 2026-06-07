@@ -1,4 +1,4 @@
-use crate::history::edit_history::{Action, EditHistory, PreviousTransform, MAX_HISTORY_COUNT};
+use crate::history::edit_history::{Action, EditHistory, EditHistoryManager, PreviousTransform};
 use crate::scene::camera::OrbitCamera;
 use crate::editor::selector::Selection;
 use bevy::{prelude::*};
@@ -190,15 +190,11 @@ impl GizmosManager {
         let Ok(previous_transform) = previous_transform_query.get(handle.target) else {return;};
 
         if previous_transform.0 == *new_transform {return;};
-        history.undo_stacks.push(Action::TransformEdit { 
+        EditHistoryManager::record(&mut history, Action::TransformEdit { 
             entity: handle.target, 
             old: previous_transform.0, 
             new: *new_transform 
-        });
-
-        if history.undo_stacks.len() > MAX_HISTORY_COUNT {history.undo_stacks.remove(0);};
-        
-        history.redo_stacks.clear();
+        }); 
     }
 
     pub fn handle_button_input(keys: Res<ButtonInput<KeyCode>>, mut mode: ResMut<GizmosMode>) {
