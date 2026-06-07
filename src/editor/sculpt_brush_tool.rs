@@ -74,6 +74,10 @@ impl SculptBrushTool {
                     BrushMode::Smooth => Self::apply_smooth(&mut input),
                     BrushMode::Flatten => Self::apply_flatten(&mut input),
                 }
+
+                if sculpt_ctx.symmetry_mode.enabled {
+                    Self::apply_symmetry(&mut input);
+                }
             }
 
             // record changed body part vertices upon left mouse button release 
@@ -229,5 +233,30 @@ impl SculptBrushTool {
             let new_world_position = world_position.lerp(projected, brush_input.strength * falloff);
             *vertex = inverse.transform_point3(new_world_position).to_array(); 
         }
-    } 
+    }
+
+    fn apply_symmetry(brush_input: &mut BrushInput) {
+        let brush_radius_squared = brush_input.brush_radius.squared();
+        let inverse = brush_input.affine.inverse();
+        let mirror_contact = Vec3::new(-brush_input.contact.x, brush_input.contact.y, brush_input.contact.z);
+        
+        for vertex in brush_input.vertices.iter_mut() {
+            let position = Vec3::from(*vertex);
+            let world_position = brush_input.affine.transform_point3(position);
+        
+            // mirror world on the x-axis (-x axis side) 
+            let mirror_distance_squared = world_position.distance_squared(mirror_contact);
+
+            if mirror_distance_squared >= brush_radius_squared {continue;};
+
+            let direct_distance_squared = world_position.distance_squared(brush_input.contact);
+            if direct_distance_squared < brush_radius_squared {continue;};
+
+            let normalised = (mirror_distance_squared / brush_radius_squared).sqrt();
+            let falloff = 1.0 - normalised.squared();
+            let mirrored_normal = Vec3::new(-brush_input.normal.x, brush_input.normal.y, brush_input.normal.z);
+            let new_world_position = world_position + mirrored_normal * brush_input.strength * falloff;
+            *vertex = inverse.transform_point3(new_world_position).to_array();
+        }
+    }
 }
