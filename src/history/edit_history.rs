@@ -1,6 +1,7 @@
 use bevy::ecs::system::SystemParam;
 use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
+use crate::editor::bvh::{BvhCache, BvhManager};
 use crate::editor::selector::{OriginalMaterial, Selector};
 use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_material::{BodyMaterial};
@@ -16,6 +17,11 @@ pub struct PreviousTransform(pub Transform);
 
 #[derive(Component, Clone)]
 pub struct PreviousPartType(pub PartType);
+
+#[derive(Resource, Default)]
+pub struct PendingSculptChanges {
+    pub vertices: Vec<[f32; 3]>
+} 
 
 #[derive(Clone)]
 pub struct BodyPartSnapshot {
@@ -63,8 +69,8 @@ pub enum Action {
     },
     SculptStroke {
         entity: Entity,
-        old_vertex: Vec<[f32; 3]>,
-        new_vertex: Vec<[f32; 3]>
+        old_vertices: Vec<[f32; 3]>,
+        new_vertices: Vec<[f32; 3]>
     }
 }
 
@@ -120,6 +126,7 @@ impl EditHistoryManager {
 
     pub fn handle_undo(
         keys: Res<ButtonInput<KeyCode>>,
+        mut bvh_cache: ResMut<BvhCache>,
         mut body_ctx: BodyContext,
         mut history: ResMut<EditHistory>,
         mut commands: Commands, 
@@ -193,14 +200,15 @@ impl EditHistoryManager {
                     }
                 }
             },
-            Action::SculptStroke { entity, ref old_vertex, .. } => {
+            Action::SculptStroke { entity, ref old_vertices, .. } => {
                 let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
                 let handle = &mesh3d.0;
                 let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
                 let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
                 
-                *vertices = old_vertex.clone();
+                *vertices = old_vertices.clone();
                 mesh.compute_normals();
+                BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
             }
         };
           
@@ -210,6 +218,7 @@ impl EditHistoryManager {
 
     pub fn handle_redo(
         keys: Res<ButtonInput<KeyCode>>,
+        mut bvh_cache: ResMut<BvhCache>,
         mut body_ctx: BodyContext, 
         mut history: ResMut<EditHistory>,
         mut commands: Commands,
@@ -277,14 +286,15 @@ impl EditHistoryManager {
                     },
                 }
             },
-            Action::SculptStroke { entity, ref new_vertex, .. } => {
+            Action::SculptStroke { entity, ref new_vertices, .. } => {
                 let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
                 let handle = &mesh3d.0;
                 let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
                 let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
                 
-                *vertices = new_vertex.clone();
+                *vertices = new_vertices.clone();
                 mesh.compute_normals();
+                BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
             }
         }
                 
@@ -292,6 +302,14 @@ impl EditHistoryManager {
         history.undo_stacks.push(action);
     }
 
+    pub fn record(history: &mut EditHistory, action: Action) {
+       history.undo_stacks.push(action);
+       if history.undo_stacks.len() > MAX_HISTORY_COUNT {
+           history.undo_stacks.remove(0);
+       }
+       history.redo_stacks.clear();
+    }
+    
     fn restore_snapshot(
         body_part_snapshot: &mut BodyPartSnapshot,
         parent: Option<Entity>,

@@ -111,7 +111,7 @@ impl SculptTool {
         mut history: ResMut<EditHistory>
     ) {
         if *mode != SculptMode::AddBodyPart {return;};
-        if !control_ctx.buttons.just_pressed(MouseButton::Left) {return;};
+        if !control_ctx.mouse_buttons.just_pressed(MouseButton::Left) {return;};
 
         let is_mouse_pointer_touching_properties_panel = egui_contexts.ctx_mut()
             .expect("egui context to be available").wants_pointer_input();  
