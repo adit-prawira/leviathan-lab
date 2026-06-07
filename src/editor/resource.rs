@@ -8,6 +8,7 @@ use crate::model::body_part::BodyPart;
 
 use super::bvh::BvhCache;
 use super::selector::Selection;
+use super::symmetry::SymmetryMode;
 
 pub const INITIAL_BODY_PART_COLOR: Color = Color::srgba(0.5, 0.8, 0.5, 1.0);
 pub const INITIAL_METALLIC_COEFFICIENT: f32 = 0.0;
@@ -101,6 +102,7 @@ impl IdGenerator for BodyPartId {
 #[derive(SystemParam)]
 pub struct SculptContext<'w>{
     pub mode: Res<'w, SculptMode>,
+    pub symmetry_mode: Res<'w, SymmetryMode>,
     pub brush: Res<'w, SculptBrush>,
     pub bvh_cache: ResMut<'w, BvhCache>,
     pub pending_sculpt_changes: ResMut<'w, PendingSculptChanges>
