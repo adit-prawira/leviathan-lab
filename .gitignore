@@ -16,9 +16,7 @@ Thumbs.db
 # Leviathan Lab saves (user creations)
 *.leviathan
 
-# Project instructions
-AGENTS.md
-
 # Docs
-plan.md
-phases/
+*.md
+!README.md
+
