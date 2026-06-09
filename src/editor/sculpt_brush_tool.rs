@@ -90,6 +90,10 @@ impl SculptBrushTool {
                     old_vertices: sculpt_ctx.pending_sculpt_changes.vertices.clone(),
                     new_vertices 
                 });
+
+                if let Ok(mut body_part) = spawn_ctx.body_part_query.get_mut(entity) {
+                    body_part.is_sculpted = true;
+                } 
             }
         }
 

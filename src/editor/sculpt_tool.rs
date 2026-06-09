@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use bevy::ecs::relationship::Relationship;
+use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 
@@ -11,7 +12,7 @@ use crate::model::body_hierarchy::BodyHierarchy;
 use crate::model::body_material::BodyMaterial;
 use crate::model::body_part::{BodyPart, BodyPartBuilder, PartType};
 
-use super::resource::{BodyContext, ControlContext, INITIAL_BODY_PART_COLOR, INITIAL_METALLIC_COEFFICIENT, INITIAL_ROUGHNESS_COEFFICIENT, IdGenerator, PendingResize, SceneContext, SculptBodyPartType, SculptMode, SpawnContext};
+use super::resource::{BodyContext, ControlContext, INITIAL_BODY_PART_COLOR, INITIAL_METALLIC_COEFFICIENT, INITIAL_ROUGHNESS_COEFFICIENT, IdGenerator, PendingResize, PendingSculptReset, SceneContext, SculptBodyPartType, SculptContext, SculptMode, SpawnContext};
 use super::selector::Selection;
 
 pub struct SculptTool;
@@ -87,6 +88,7 @@ impl SculptTool {
         }
  
         let Some(mesh) = meshes.get(&mesh_handle) else {return;};
+        body_part.is_sculpted = false;
         BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
         *pending_resize = PendingResize::default();
         
@@ -229,6 +231,36 @@ impl SculptTool {
         commands.entity(entity).despawn();
         bvh_cache.meshes.remove(&entity);
         selection.entity = parent.or_else(|| body_ctx.all_body_part_query.iter().find(|&e| e != entity));
+    }
+
+    pub fn handle_sculpt_reset(
+        mut sculpt_ctx: SculptContext,
+        mut spawn_ctx: SpawnContext,
+        mut history: ResMut<EditHistory>
+    ) {
+        let Some(entity) = sculpt_ctx.pending_sculpt_reset.entity else {return;};
+        let Ok(mesh3d) = spawn_ctx.mesh3d_query.get(entity) else {return;};
+        let Ok(mut body_part) = spawn_ctx.body_part_query.get_mut(entity) else {return;}; 
+        
+        let mesh_handle = &mesh3d.0;
+        let Some(mesh) = spawn_ctx.meshes.get_mut(mesh_handle) else {return;};
+
+        let old_vertices: Vec<[f32; 3]> = {
+            let positions = mesh.attribute(Mesh::ATTRIBUTE_POSITION);
+            match positions {
+                Some(VertexAttributeValues::Float32x3(vertices)) => vertices.clone(),
+                _ => return
+            }
+        };
+
+        *mesh = body_part.build_mesh();
+        body_part.is_sculpted = false;
+        BvhManager::rebuild_for_entity(mesh, entity, &mut sculpt_ctx.bvh_cache);
+        EditHistoryManager::record(&mut history, Action::SculptReset { 
+            entity, 
+            old_vertices 
+        });
+        *sculpt_ctx.pending_sculpt_reset = PendingSculptReset::default();
     }
 
     fn capture_snapshot(

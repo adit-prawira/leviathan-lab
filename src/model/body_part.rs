@@ -64,7 +64,8 @@ pub struct BodyPart {
     pub rotation: [f32; 4],
     pub scale: [f32; 3],
     pub material_id: u32,
-    pub subdivisions: u32
+    pub subdivisions: u32,
+    pub is_sculpted: bool
 }
 
 impl BodyPart {
@@ -120,7 +121,8 @@ impl BodyPartBuilder {
              rotation: [0.0, 0.0, 0.0, 1.0],
              scale: [1.0, 1.0, 1.0],
              material_id: 0,
-             subdivisions: DEFAULT_SUBDIVISION
+             subdivisions: DEFAULT_SUBDIVISION,
+             is_sculpted: false,
          }
      }
 }

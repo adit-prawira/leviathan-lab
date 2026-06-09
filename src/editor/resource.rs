@@ -110,7 +110,8 @@ pub struct SculptContext<'w>{
     pub symmetry_mode: Res<'w, SymmetryMode>,
     pub brush: Res<'w, SculptBrush>,
     pub bvh_cache: ResMut<'w, BvhCache>,
-    pub pending_sculpt_changes: ResMut<'w, PendingSculptChanges>
+    pub pending_sculpt_changes: ResMut<'w, PendingSculptChanges>,
+    pub pending_sculpt_reset: ResMut<'w, PendingSculptReset>
 }
 
 #[derive(SystemParam)]
@@ -126,7 +127,7 @@ pub struct SpawnContext<'w, 's>{
     pub materials: ResMut<'w, Assets<StandardMaterial>>,
     pub commands: Commands<'w, 's>,
     pub body_part_id: ResMut<'w, BodyPartId>,
-    pub body_part_query: Query<'w, 's, &'static BodyPart>
+    pub body_part_query: Query<'w, 's, &'static mut BodyPart>
 }
 
 #[derive(SystemParam)]
@@ -161,4 +162,9 @@ pub struct PendingResize {
     pub half_height: Option<f32>,
     pub half_length: Option<f32>,
     pub subdivisions: Option<u32>,
+}
+
+#[derive(Resource, Default)]
+pub struct PendingSculptReset {
+    pub entity: Option<Entity>
 }

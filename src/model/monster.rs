@@ -58,7 +58,8 @@ impl Monster {
             rotation: [0.0, 0.0, 0.0, 1.0],
             scale: [1.0, 0.7, 1.5],
             material_id: 0,
-            subdivisions: DEFAULT_SUBDIVISION
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 
@@ -73,7 +74,8 @@ impl Monster {
             rotation: [0.0, 0.0, 0.0, 1.0],
             scale: [1.0, 1.0, 1.0],
             material_id: 0,
-            subdivisions: DEFAULT_SUBDIVISION
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 
@@ -88,7 +90,8 @@ impl Monster {
             rotation: [FRAC_1_SQRT_2, 0.0, 0.0, FRAC_1_SQRT_2],
             scale: [0.7, 0.7, 0.7],
             material_id: 0,
-            subdivisions: DEFAULT_SUBDIVISION
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 
@@ -103,7 +106,8 @@ impl Monster {
             rotation: [0.0, 0.0, 0.0, 1.0],
             scale: [0.9, 0.4, 1.3],
             material_id: 1,
-            subdivisions: DEFAULT_SUBDIVISION
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 
@@ -118,7 +122,8 @@ impl Monster {
             rotation: [0.0, 0.0, 0.0, 1.0],
             scale: [0.3, 1.0, 1.0],
             material_id: 0,
-            subdivisions: DEFAULT_SUBDIVISION
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 
@@ -133,7 +138,8 @@ impl Monster {
             rotation: [0.0, 0.0, 0.0, 1.0],
             scale: [1.0, 1.0, 1.0],
             material_id: 2,
-            subdivisions: DEFAULT_SUBDIVISION
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 
@@ -148,7 +154,8 @@ impl Monster {
             rotation: [0.0, 0.0, 0.0, 1.0],
             scale: [1.0, 1.0, 1.0],
             material_id: 2,
-            subdivisions: DEFAULT_SUBDIVISION 
+            subdivisions: DEFAULT_SUBDIVISION,
+            is_sculpted: false
         }
     }
 }
