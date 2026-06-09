@@ -71,6 +71,10 @@ pub enum Action {
         entity: Entity,
         old_vertices: Vec<[f32; 3]>,
         new_vertices: Vec<[f32; 3]>
+    },
+    SculptReset {
+        entity: Entity,
+        old_vertices: Vec<[f32; 3]>
     }
 }
 
@@ -205,11 +209,25 @@ impl EditHistoryManager {
                 let handle = &mesh3d.0;
                 let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
                 let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
-                
+    
                 *vertices = old_vertices.clone();
                 mesh.compute_normals();
                 BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
-            }
+            },
+            Action::SculptReset { entity, ref old_vertices } => {
+                let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
+                let handle = &mesh3d.0;
+                let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
+                let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
+                
+                history.restoring = true;
+                *vertices = old_vertices.clone();
+                if let Ok(mut body_part) = body_ctx.body_part_query.get_mut(entity) {
+                    body_part.is_sculpted = true;
+                }
+                BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
+                history.restoring = false;
+            },
         };
           
         // save to redo stack so this undo can be reversed
@@ -291,11 +309,23 @@ impl EditHistoryManager {
                 let handle = &mesh3d.0;
                 let Some(mesh) = body_ctx.meshes.get_mut(handle) else {return;};
                 let Some(VertexAttributeValues::Float32x3(vertices)) = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION) else {return;};
-                
+    
                 *vertices = new_vertices.clone();
                 mesh.compute_normals();
                 BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
-            }
+            },
+            Action::SculptReset { entity, .. } => {
+                let Ok(mesh3d) = body_ctx.mesh3d_query.get(entity) else {return;};
+                let mesh_handle = &mesh3d.0;
+                let Some(mesh) = body_ctx.meshes.get_mut(mesh_handle) else {return;};
+                history.restoring = true;
+                if let Ok(mut body_part) = body_ctx.body_part_query.get_mut(entity) {
+                    *mesh = body_part.build_mesh();
+                    body_part.is_sculpted = false;
+                }
+                BvhManager::rebuild_for_entity(mesh, entity, &mut bvh_cache);
+                history.restoring = false;
+            },
         }
                 
         // save to undo stack so this redo can be reversed

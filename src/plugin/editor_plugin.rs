@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::editor::bvh::{BvhCache, BvhManager};
 use crate::editor::gizmos::{GizmosManager, GizmosMode};
-use crate::editor::resource::{BodyPartId, BrushMode, PendingResize, SculptBodyPartType, SculptBrush, SculptMode};
+use crate::editor::resource::{BodyPartId, BrushMode, PendingResize, PendingSculptReset, SculptBodyPartType, SculptBrush, SculptMode};
 use crate::editor::sculpt_brush_tool::SculptBrushTool;
 use crate::editor::sculpt_tool::{SculptTool};
 use crate::editor::selector::{Selection, Selector};
@@ -23,6 +23,7 @@ impl Plugin for EditorPlugin {
             .insert_resource(PendingSymmetricChanges::default())
             .insert_resource(PendingResize::default())
             .insert_resource(PendingSculptChanges::default())
+            .insert_resource(PendingSculptReset::default())
             .insert_resource(GizmosMode::default())
             .insert_resource(BvhCache::default())   
             .add_systems(Update, (
@@ -32,6 +33,7 @@ impl Plugin for EditorPlugin {
                 SculptTool::handle_add_body_part,
                 SculptTool::handle_delete_body_part,
                 SculptTool::handle_resize,
+                SculptTool::handle_sculpt_reset,
                 SculptBrushTool::handle_brush_radius_change,
                 SculptBrushTool::handle_brush.before(SculptBrushTool::handle_brush_cursor),
                 SculptBrushTool::handle_brush_cursor,

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::editor::gizmos::GizmosMode;
-use crate::editor::resource::{PendingResize, SculptBrush, SculptMode, TransformContext};
+use crate::editor::resource::{PendingResize, PendingSculptReset, SculptBrush, SculptMode, TransformContext};
 use crate::history::edit_history::{EditHistory};
 use crate::model::body_hierarchy::{BodyHierarchy, EntityReference, HierarchyReference};
 use crate::model::body_material::BodyMaterial;
@@ -23,6 +23,7 @@ pub struct EditorContext<'w> {
     symmetry_mode: ResMut<'w, SymmetryMode>,
     history: ResMut<'w, EditHistory>,
     pending_resize: ResMut<'w, PendingResize>,
+    pending_sculpt_reset: ResMut<'w, PendingSculptReset>,
     sculpt_brush: ResMut<'w, SculptBrush>,
     sculpt_mode: Res<'w, SculptMode>
 }
@@ -59,7 +60,7 @@ impl PropertiesPanel {
             .show(contexts.ctx_mut().expect("egui context to be available"),|ui| {
                 Self::properties_section(ui, entity, body_part, &mut transform_ctx.transform_query);
 
-                Self::shape_section(ui, entity, body_part, &mut editor_ctx.pending_resize); 
+                Self::shape_section(ui, entity, body_part, &mut editor_ctx.pending_resize, &mut editor_ctx.pending_sculpt_reset); 
 
                 Self::material_section(ui, &mut body_material);  
 
@@ -348,10 +349,21 @@ impl PropertiesPanel {
         }; 
     } 
 
-    fn shape_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, pending: &mut PendingResize){
+    fn shape_section(ui: &mut Ui, entity: Entity, body_part: &BodyPart, pending: &mut PendingResize, pending_sculpt_reset: &mut PendingSculptReset){
         ui.heading("Shape");
         ui.separator();
 
+        if body_part.is_sculpted {
+            ui.colored_label(egui::Color32::YELLOW, "⚠️ Reset Sculpt to Resize");
+            let reset_button = ui.button("Reset Sculpt");
+
+            if reset_button.clicked() {
+                pending_sculpt_reset.entity = Some(entity);
+            }
+
+            ui.separator();
+            return;
+        } 
         let mut changed = false;
 
         egui::Grid::new("Shape").spacing([8.0, 8.0]).show(ui, |ui| {
