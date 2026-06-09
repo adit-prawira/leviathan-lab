@@ -21,10 +21,12 @@ struct BrushInput<'a>{
 pub struct SculptBrushTool;
 
 impl SculptBrushTool {
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_brush(
         control_ctx: ControlContext,
         transform_ctx: TransformContext,
         scene_ctx: SceneContext,
+        time: Res<Time>,
         mut sculpt_ctx: SculptContext,
         mut spawn_ctx: SpawnContext,
         mut egui_ctxs: EguiContexts,
@@ -64,7 +66,7 @@ impl SculptBrushTool {
                     vertices,
                     contact: world_hit,
                     normal: world_normal,
-                    strength: sculpt_ctx.brush.effective_strength(),
+                    strength: sculpt_ctx.brush.effective_strength() * time.delta_secs() * 60.0,
                     brush_radius: sculpt_ctx.brush.radius,
                     affine
                 };
@@ -163,7 +165,7 @@ impl SculptBrushTool {
             
             if !is_within_brush_radius {continue;};
 
-            let falloff = 1.0 - (distance_squared / brush_radius_squared).sqrt();
+            let falloff = 1.0 - (distance_squared / brush_radius_squared);
             let new_world_position = world_position + brush_input.normal * brush_input.strength * falloff;
             *vertex = inverse.transform_point3(new_world_position).to_array();
         }
@@ -181,7 +183,7 @@ impl SculptBrushTool {
             
             if !is_within_brush_radius {continue;};
             
-            let falloff = 1.0 - (distance_squared / brush_radius_squared).sqrt();
+            let falloff = 1.0 - (distance_squared / brush_radius_squared);
             let new_world_position = world_position - brush_input.normal * brush_input.strength * falloff; 
             *vertex = inverse.transform_point3(new_world_position).to_array(); 
         }
@@ -216,7 +218,7 @@ impl SculptBrushTool {
 
             if !is_within_brush_radius {continue;};
 
-            let falloff = 1.0 - (distance_squared/brush_radius_squared).sqrt();
+            let falloff = 1.0 - (distance_squared/brush_radius_squared);
             let new_world_position = world_position.lerp(average, brush_input.strength * falloff);
             *vertex = inverse.transform_point3(new_world_position).to_array(); 
         }
@@ -235,7 +237,7 @@ impl SculptBrushTool {
             let is_within_brush_radius = distance_squared < brush_radius_squared;
             if !is_within_brush_radius {continue;};
 
-            let falloff = 1.0 - (distance_squared/brush_radius_squared).sqrt(); 
+            let falloff = 1.0 - (distance_squared/brush_radius_squared); 
             let projected = world_position - (world_position - plane_origin).dot(plane_normal) * plane_normal;
             let new_world_position = world_position.lerp(projected, brush_input.strength * falloff);
             *vertex = inverse.transform_point3(new_world_position).to_array(); 
@@ -259,7 +261,7 @@ impl SculptBrushTool {
             let direct_distance_squared = world_position.distance_squared(brush_input.contact);
             if direct_distance_squared < brush_radius_squared {continue;};
 
-            let normalised = (mirror_distance_squared / brush_radius_squared).sqrt();
+            let normalised = mirror_distance_squared / brush_radius_squared;
             let falloff = 1.0 - normalised.squared();
             let mirrored_normal = Vec3::new(-brush_input.normal.x, brush_input.normal.y, brush_input.normal.z);
             let new_world_position = world_position + mirrored_normal * brush_input.strength * falloff;
