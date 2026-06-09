@@ -137,5 +137,6 @@ src/
 | 6 | Make It Swim | Planned |
 | 7 | Deep Sea Polish | Planned |
 
-## Still a Hatchling for Now 🙃
-<img width="1512" height="952" alt="Screenshot 2026-05-24 at 8 37 20 pm" src="https://github.com/user-attachments/assets/e238876d-9ff6-44b6-81c4-55a1d9b8db42" />
+## Still a Hatchling for Now?🙃
+<img width="1512" height="950" alt="Screenshot 2026-06-09 at 11 32 48 pm" src="https://github.com/user-attachments/assets/ef49abff-7ea3-42ec-8621-0c8537e4a664" />
+
