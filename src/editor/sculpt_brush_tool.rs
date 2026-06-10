@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::input::mouse::MouseWheel;
 use bevy::math::{Affine3A, FloatPow};
 use bevy::mesh::VertexAttributeValues;
@@ -70,10 +72,14 @@ impl SculptBrushTool {
                     brush_radius: sculpt_ctx.brush.radius,
                     affine
                 };
+                
                 match sculpt_ctx.brush.mode {
                     BrushMode::Pull => Self::apply_pull(&mut input),
                     BrushMode::Push => Self::apply_push(&mut input),
-                    BrushMode::Smooth => Self::apply_smooth(&mut input),
+                    BrushMode::Smooth => {
+                        let Some(adjacency) = sculpt_ctx.sculpt_adjacency.neighbors.get(&entity) else {return;};
+                        Self::apply_smooth(&mut input, adjacency)
+                    },
                     BrushMode::Flatten => Self::apply_flatten(&mut input),
                 }
 
@@ -102,6 +108,8 @@ impl SculptBrushTool {
         if is_hold_pressed {
             mesh.compute_normals();
             BvhManager::rebuild_for_entity(mesh, entity, &mut sculpt_ctx.bvh_cache);
+            let adjacency = Self::build_adjacency(mesh);
+            sculpt_ctx.sculpt_adjacency.neighbors.insert(entity, adjacency);
         }
     }
 
@@ -133,6 +141,7 @@ impl SculptBrushTool {
         let Some((world_hit, world_normal)) = BvhManager::intersect_mesh(&sculpt_ctx.bvh_cache, &cursor_ray, entity, entity_world) else {return;};
         let rotation = Quat::from_rotation_arc(Vec3::Z, world_normal);
         gizmos.circle(Isometry3d::new(world_hit, rotation), sculpt_ctx.brush.radius, Color::WHITE);
+        gizmos.circle(Isometry3d::new(world_hit, rotation), sculpt_ctx.brush.radius * 0.5, Color::srgba(1.0, 1.0, 1.0, 0.4));
     } 
 
     fn get_cursor_ray(scene_ctx: &SceneContext) -> Option<Ray3d>{
@@ -189,38 +198,44 @@ impl SculptBrushTool {
         }
     }
     
-    fn apply_smooth(brush_input: &mut BrushInput) {
-        let mut sum = Vec3::ZERO;
-        let mut count = 0;
+    fn apply_smooth(brush_input: &mut BrushInput, adjacency: &HashMap<usize, Vec<usize>>) {
         let brush_radius_squared = brush_input.brush_radius.squared();
         let inverse = brush_input.affine.inverse();
 
-        for vertex in brush_input.vertices.iter() {
-            let position = Vec3::from(*vertex);
-            let world_position = brush_input.affine.transform_point3(position);
+
+        let world_positions: Vec<Vec3> = brush_input.vertices.iter()
+            .map(|vertex| brush_input.affine.transform_point3(Vec3::from(*vertex)))
+            .collect();
+
+        let world_positions_size = world_positions.len();
+
+        for (index, vertex) in brush_input.vertices.iter_mut().enumerate() {
+            let world_position = world_positions[index];
             let distance_squared = world_position.distance_squared(brush_input.contact);
             let is_within_brush_radius = distance_squared < brush_radius_squared;
-            
             if !is_within_brush_radius {continue;};
 
-            sum += world_position; 
-            count += 1;
-        }
+            let Some(neighbors) = adjacency.get(&index) else {continue;};
+            let mut weighted_sum = Vec3::ZERO;
+            let mut total_weight = 0.0;
 
-        if count == 0 {return;};
-        let average = sum/(count as f32);
+            for &neighbor in neighbors {
+                if neighbor >= world_positions_size {continue;};
+                let neighbor_world = world_positions[neighbor];
+                let edge_length = world_position.distance(neighbor_world);
+                if edge_length < 1e-6 {continue;};
 
-        for vertex in brush_input.vertices.iter_mut() {
-            let position = Vec3::from(*vertex);
-            let world_position = brush_input.affine.transform_point3(position);
-            let distance_squared = world_position.distance_squared(brush_input.contact);
-            let is_within_brush_radius = distance_squared < brush_radius_squared;
+                let weight = 1.0 / edge_length;
+                weighted_sum += neighbor_world * weight;
+                total_weight += weight;
+            }
 
-            if !is_within_brush_radius {continue;};
+            if total_weight < 1e-6 {continue;};
+            let laplacian = weighted_sum / total_weight;
 
-            let falloff = 1.0 - (distance_squared/brush_radius_squared);
-            let new_world_position = world_position.lerp(average, brush_input.strength * falloff);
-            *vertex = inverse.transform_point3(new_world_position).to_array(); 
+            let falloff = 1.0 - (distance_squared / brush_radius_squared);
+            let new_world_position = world_position.lerp(laplacian, brush_input.strength * falloff);
+            *vertex = inverse.transform_point3(new_world_position).to_array();
         }
     }
     
@@ -267,5 +282,24 @@ impl SculptBrushTool {
             let new_world_position = world_position + mirrored_normal * brush_input.strength * falloff;
             *vertex = inverse.transform_point3(new_world_position).to_array();
         }
+    }
+
+    fn build_adjacency(mesh: &Mesh) -> HashMap<usize, Vec<usize>> {
+        let Some(indices) = mesh.indices() else {return HashMap::new()};
+        let mut adjacency: HashMap<usize, Vec<usize>> = HashMap::new();
+
+        for triangle in indices.iter().collect::<Vec<_>>().chunks(3) {
+            let [a, b, c] = [triangle[0], triangle[1], triangle[2]];
+            adjacency.entry(a).or_default().extend([b, c]);
+            adjacency.entry(b).or_default().extend([a, c]);
+            adjacency.entry(c).or_default().extend([a, b]);
+        }
+
+        for neighbors in adjacency.values_mut(){
+            neighbors.sort();
+            neighbors.dedup();
+        }
+
+        adjacency
     }
 }

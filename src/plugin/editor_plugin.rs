@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::editor::bvh::{BvhCache, BvhManager};
 use crate::editor::gizmos::{GizmosManager, GizmosMode};
-use crate::editor::resource::{BodyPartId, BrushMode, PendingResize, PendingSculptReset, SculptBodyPartType, SculptBrush, SculptMode};
+use crate::editor::resource::{BodyPartId, BrushMode, PendingResize, PendingSculptReset, SculptAdjacency, SculptBodyPartType, SculptBrush, SculptMode};
 use crate::editor::sculpt_brush_tool::SculptBrushTool;
 use crate::editor::sculpt_tool::{SculptTool};
 use crate::editor::selector::{Selection, Selector};
@@ -16,6 +16,7 @@ impl Plugin for EditorPlugin {
         app.insert_resource(SculptMode::default())
             .insert_resource(SculptBodyPartType::default())
             .insert_resource(SculptBrush::default())
+            .insert_resource(SculptAdjacency::default())
             .insert_resource(BrushMode::default())
             .insert_resource(BodyPartId::default())
             .insert_resource(Selection::default())

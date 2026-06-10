@@ -1,6 +1,7 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use core::fmt;
+use std::collections::HashMap;
 
 use crate::history::edit_history::PendingSculptChanges;
 use crate::model::body_material::BodyMaterial;
@@ -81,6 +82,11 @@ impl SculptBrush {
     }
 }
 
+#[derive(Resource, Default)]
+pub struct SculptAdjacency {
+    pub neighbors: HashMap<Entity, HashMap<usize, Vec<usize>>>
+}
+
 #[derive(Resource)]
 pub struct BodyPartId(pub u32);
 
@@ -111,7 +117,8 @@ pub struct SculptContext<'w>{
     pub brush: Res<'w, SculptBrush>,
     pub bvh_cache: ResMut<'w, BvhCache>,
     pub pending_sculpt_changes: ResMut<'w, PendingSculptChanges>,
-    pub pending_sculpt_reset: ResMut<'w, PendingSculptReset>
+    pub pending_sculpt_reset: ResMut<'w, PendingSculptReset>,
+    pub sculpt_adjacency: ResMut<'w, SculptAdjacency>
 }
 
 #[derive(SystemParam)]
