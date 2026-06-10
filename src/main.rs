@@ -16,7 +16,7 @@ fn main() {
                 primary_window: Some(Window {
                     title: "Leviathan Lab".into(),
                     mode: WindowMode::BorderlessFullscreen(
-                        MonitorSelection::Primary
+                        MonitorSelection::Current
                     ),
                     ..default()
                 }),

@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 
-use crate::editor::resource::{BrushMode, SculptBodyPartType, SculptMode};
+use crate::editor::resource::{BrushMode, SculptBodyPartType, SculptBrush, SculptMode};
 
 pub struct Toolbar;
 
 impl Toolbar {
     pub fn show(
         mut mode: ResMut<SculptMode>,
-        mut brush_mode: ResMut<BrushMode>,        
+        mut sculpt_brush: ResMut<SculptBrush>,
         mut added_body_part_type: ResMut<SculptBodyPartType>,
         mut contexts: EguiContexts
     ) {
@@ -22,10 +22,10 @@ impl Toolbar {
                     
                     if *mode == SculptMode::Sculpt {
                         ui.separator();
-                        ui.selectable_value(&mut *brush_mode, BrushMode::Pull, "↑ Pull");
-                        ui.selectable_value(&mut *brush_mode, BrushMode::Push, "↓ Push");
-                        ui.selectable_value(&mut *brush_mode, BrushMode::Smooth, "〜 Smooth");
-                        ui.selectable_value(&mut *brush_mode, BrushMode::Flatten, "— Flatten");
+                        ui.selectable_value(&mut sculpt_brush.mode, BrushMode::Pull, "↑ Pull");
+                        ui.selectable_value(&mut sculpt_brush.mode, BrushMode::Push, "↓ Push");
+                        ui.selectable_value(&mut sculpt_brush.mode, BrushMode::Smooth, "〜 Smooth");
+                        ui.selectable_value(&mut sculpt_brush.mode, BrushMode::Flatten, "— Flatten");
                     }
 
                     if *mode != SculptMode::AddBodyPart {return;};
